@@ -4,10 +4,15 @@ Find the fastest PIA server
 Netselect is required. You can download it from
 
 http://ftp.us.debian.org/debian/pool/main/n/netselect/
+
 http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_i386.deb		i386
+
 http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_arm64.deb		ARM64
+
 http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_armhf.deb		ARMHF
+
 http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_amd64.deb		AMD64
+
 
 install with sudo dpkg -i netselect_0.3.ds1-28+b1_*.deb
 
