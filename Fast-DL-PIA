@@ -1,7 +1,11 @@
 #!/bin/bash
+#
 #World Wide Servers by ip
 #wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
-
+#
+# Some Test File Locations
+# http://support.smartdnsproxy.com/customer/portal/articles/1907772-vpn-server-locations-addresses
+#
 # U.S Servers by ip
 #wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep us- | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
 
@@ -41,7 +45,9 @@ Select Option
 2. Speed Test Your Current Connection Speed
 
 EOF
-tput sc
+
+tput cup 20 0
+tput ed
 read -n 1 option
 
 case "$option" in
@@ -52,8 +58,8 @@ case "$option" in
 		speedtest
 		;;
     *)
-        clear
-        banner
+        tput cup 12 0
+		tput ed
         main-selection
         ;;
 esac
@@ -62,10 +68,12 @@ esac
 
 
 pia() {
-tput rc
+tput cup 13 0
+tput ed
 printf "%b\n" " "
 printf "%b" "Checking For PIA's Fastest Server...Please Wait." "\n\n"
 if [ "${selection}" -eq 0 ]; then
+printf "%b" "Checking All Servers Takes More Time....Be Patient" "\n"
 server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]')
 else
 server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep "${LOCATION}")
@@ -79,6 +87,8 @@ fi
 #-----------------------------------------------------------------
 #
 printf "${server}" | xargs sudo netselect -s 1 > file1
+tput cup 15 0
+tput ed
 printf "%b" "Fastest Server" "\n\n"
 tput setaf 1
 cat file1 | awk '{print $2}'
@@ -123,25 +133,24 @@ printf "%b\n"
 
 }
 menu() {
-	
-tput rc
-#tput el	
+
 ValuePIA=$(curl -m 10 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected")
 
 if (( "${ValuePIA}" > 0 ))
 then
-#printf "%b\n"
+tput cup 14 0
+tput ed
 tput setaf 3
    printf "%b" "You are currently connected to PIA's VPN service.
 More realistic results can be achived if you are not connected
 to PIA for the \"Fastest Server Check\""
 tput sgr0
-tput sc
+
 else
-tput sc
-printf "%b\n"
+tput cup 20 0
+tput ed
 fi
-tput rc
+
 printf "%b\n"
 cat <<"EOF"
 
@@ -159,13 +168,13 @@ Select Country
 9. Israel
 
 EOF
-tput sc
+
 read -n 1 selection
 case "${selection}" in
 
 	0)
 	LOCATION=""
-	printf "%b" "Checking All Servers Takes More Time....Be Patient" "\n";;
+	;;
 	1)
 	LOCATION="us-";;
 	2)
@@ -187,45 +196,27 @@ case "${selection}" in
 	*)
 	clear
 	banner
-	menu;;
+	menu
+	tput cup 14 0
+	tput ed
+	;;
 	esac
 	pia
-}
-function progressfilt {
-    local flag=false c count cr=$'\r' nl=$'\n'
-    while IFS='' read -d '' -rn 1 c
-    do
-        if $flag; then
-            printf '%s' "$c"
-        else
-            if [[ $c != $cr && $c != $nl ]]; then
-                count=0
-            else
-                ((count++))
-                if ((count > 1)); then
-                    flag=true
-                fi
-            fi
-        fi
-    done
-}
-
-function wget_nv {
-    wget "$@" --progress=bar:force 2>&1 | progressfilt
 }
 
 function speedtest {
 # Dependencies "wget"
-if command -v wget >/dev/null 2>&1 ; then
-tput rc
-tput el
+if command -v curl >/dev/null 2>&1 ; then
+tput cup 12 0
+tput ed
     printf "%b\n"
 
 else
 ScriptLoc=$(readlink -f "$0")
-tput rc
+tput cup 12 0
+tput ed
 tput setaf 1
-printf "%b\n" "wget is required for Speed Testing but not found"
+printf "%b\n" "curl is required for Speed Testing but not found"
 printf "%b\n"
 tput sgr0
 printf "%b\n" "Would you like to try to install it now?"
@@ -234,7 +225,7 @@ printf "%b\n"
 read -r -n 1 -p "[y/N] " response
 case "$response" in
     [yY]) 
-        sudo apt install wget
+        sudo apt install curl
         exec "$ScriptLoc"
 		;;
     *)
@@ -243,10 +234,35 @@ case "$response" in
         ;;
 esac
 
+fi
 
+if command -v bc >/dev/null 2>&1 ; then
+tput cup 12 0
+tput ed
+    printf "%b\n"
 
+else
+ScriptLoc=$(readlink -f "$0")
+tput cup 12 0
+tput ed
+tput setaf 1
+printf "%b\n" "bc is required for Speed Testing but not found"
+printf "%b\n"
+tput sgr0
+printf "%b\n" "Would you like to try to install it now?"
+printf "%b\n"
 
-
+read -r -n 1 -p "[y/N] " response
+case "$response" in
+    [yY]) 
+        sudo apt install bc
+        exec "$ScriptLoc"
+		;;
+    *)
+        
+		exec "$ScriptLoc"
+        ;;
+esac
 
 fi
 
@@ -255,85 +271,110 @@ cat <<"EOF"
 
 Select Download Size
 
-1. 10  MB (USA or UK)
+1. 10  MB
 2. 20  MB
 3. 50  MB
-4. 100 MB (USA or UK)
+4. 100 MB
 5. 200 MB
+6. 500 MB
 
 EOF
-tput sc
+
 	read -n 1 size
 case "${size}" in
 	1)
 	FileSize="10"
-tput rc
-printf "%b" "File Location?" "\n"
-
-	cat <<"EOF"
-
-1. USA
-2. UK
-EOF
-printf "%b\n\n"
-tput sc
-
-	read -n 1 url
-	if [ "${url}" ==  1 ]; then
-	LOC="USA"
-	URL="http://mirror.sfo12.us.leaseweb.net/speedtest/"${FileSize}"mb.bin"
-	else
-	URL="http://ipv4.download.thinkbroadband.com/"${FileSize}"MB.zip"
-	LOC="United Kingdom"
-	fi
-	 ;;
+	;;
 	2)
 	FileSize="20"
-	URL="http://ipv4.download.thinkbroadband.com/"${FileSize}"MB.zip"
-		;;
+	;;
 	3)
 	FileSize="50"
-	URL="http://ipv4.download.thinkbroadband.com/"${FileSize}"MB.zip"
 	;;
 	4)
 	FileSize="100"
-	tput rc
-	printf "%b" "File Location?" "\n"
-	cat <<"EOF"
-	
-1. USA
-2. UK
-EOF
-printf "%b\n\n"
-tput sc
-
-	read -n 1 url
-	if [ "${url}" ==  1 ]; then
-	LOC="USA"
-	URL="http://mirror.sfo12.us.leaseweb.net/speedtest/"${FileSize}"mb.bin"
-	else
-	URL="http://ipv4.download.thinkbroadband.com/"${FileSize}"MB.zip"
-	LOC="United Kingdom"
-	fi
 	;;
 	5)
 	FileSize="200"
-	URL="http://ipv4.download.thinkbroadband.com/"${FileSize}"MB.zip"
+	;;
+	6)
+	FileSize="500"
 	;;
 	*)
 	speedtest;;
-	
-   esac
+	esac
+tput cup 23 0
+tput ed
+printf "%b" "Download "${FileSize}"MB File From?" "\n"
 
-#http://mirror.sfo12.us.leaseweb.net/speedtest/"${FileSize}"mb.bin
+	cat <<"EOF"
 
- 
-   
-tput rc
-printf "%b" "Using Test Files From "${URL}"" "\n\n"
-printf "%b\n" " "
-printf "%b" "Downloading "${FileSize}"MB File From  "${LOC}"" "\n\n"
-   wget_nv -O /dev/null "${URL}"
+1. USA
+2. UK
+3. Germany
+4. Netherlands
+5. Canada
+6. Hong Kong
+7. Italy
+8. Japan
+9. Australia
+EOF
+printf "%b\n\n"
+
+	read -n 1 location
+	case "${location}" in
+	1)
+	URL="http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin"
+	LOC="USA"
+	;;
+	2)	
+	URL="http://ipv4.download.thinkbroadband.com/512MB.zip"
+	LOC="United Kingdom"
+	;;
+	3)	
+	URL="https://speed.hetzner.de/1GB.bin"
+	LOC="Germany"
+	;;
+	4)	
+	URL="https://iperf.worldstream.nl/1000mb.bin"
+	LOC="Netherlands"
+	;;
+	5)	
+	URL="http://ca-mr2-smart.serverlocation.co:82/1Gio.dat"
+	LOC="Canada"
+	;;
+	6)	
+	URL="http://hk.serverlocation.co:82/1Gio.dat"
+	LOC="Hong Kong"
+	;;
+	7)	
+	URL="http://it-ml-smart.serverlocation.co:82/1Gio.dat"
+	LOC="Italy"
+	;;
+	8)	
+	URL="http://jp-tk-smart.serverlocation.co:82/1Gio.dat"
+	LOC="Japan"
+	;;
+	9)	
+	URL="http://au-sy.serverlocation.co:82/1Gio.dat"
+	LOC="Australia"
+	;;
+	*)
+	speedtest
+	;;
+	esac
+tput cup 35 0
+tput ed	
+printf "%s\n" "Downloading From ${LOC} "
+tput cup 37 0
+tput ed	
+printf "%b\n" $(dirname "${URL}")
+tput setaf 3
+dlspeed=$(printf "%b" "scale=2; " && curl --progress-bar --connect-timeout 10 -o /dev/null -r 0-"${FileSize}"000000 "${URL}" -w "%{speed_download}"  | sed "s/\,/\./g" && echo "/1048576");
+tput setaf 5
+printf "%b\n" "$dlspeed" | bc -q | sed "s/$/ MB\/sec/;s/^/\tDownload Speed\: /";
+tput sgr0
+printf "%b\n"
 }
 
 clear
