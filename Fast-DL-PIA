@@ -1,0 +1,347 @@
+#!/bin/bash
+#World Wide Servers by ip
+#wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
+
+# U.S Servers by ip
+#wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep us- | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
+
+tput sgr0
+# Dependencies "Netselect"
+if command -v netselect >/dev/null 2>&1 ; then
+    printf "%b\n"
+
+else
+clear
+cat <<"EOF"
+
+Netselect is required but not found. You can download it from
+
+http://ftp.us.debian.org/debian/pool/main/n/netselect/
+http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_i386.deb		i386
+http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_arm64.deb		ARM64
+http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_armhf.deb		ARMHF
+http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_amd64.deb		AMD64
+
+install with sudo dpkg -i netselect_0.3.ds1-28+b1_*.deb
+
+Your Architecture (i386, x86_64, etc.) Is
+EOF
+dpkg --print-architecture
+    exit
+fi
+
+function main-selection {
+printf "%b\n"
+
+	cat <<"EOF"
+
+Select Option
+
+1. Check For PIA's Fastest Server
+2. Speed Test Your Current Connection Speed
+
+EOF
+tput sc
+read -n 1 option
+
+case "$option" in
+    1) 
+        menu
+        ;;
+    2)
+		speedtest
+		;;
+    *)
+        clear
+        banner
+        main-selection
+        ;;
+esac
+
+}
+
+
+pia() {
+tput rc
+printf "%b\n" " "
+printf "%b" "Checking For PIA's Fastest Server...Please Wait." "\n\n"
+if [ "${selection}" -eq 0 ]; then
+server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]')
+else
+server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep "${LOCATION}")
+fi
+#
+# Sudo Check -----------------------------------------------------
+sudo -nv 2> /dev/null
+if [ "${?}" -ne 0 ] ; then
+    printf "%b" "Netselect Requires Root Access To Run" "\n\n"
+fi
+#-----------------------------------------------------------------
+#
+printf "${server}" | xargs sudo netselect -s 1 > file1
+printf "%b" "Fastest Server" "\n\n"
+tput setaf 1
+cat file1 | awk '{print $2}'
+fhostname=$(cat file1 | awk '{print $2}')
+printf "%b\n"
+cat file1 | awk '{printf $2}' | xargs host > file2
+cAddresses=$(wc -l file2 | awk '{print $1}')
+printf "%b" ""${fhostname}"";tput setaf 3;printf "%b" " Has "${cAddresses}" IP Address's" "\n\n"
+tput sgr0
+printf "%b" "Checking For The Fastest IP Address To "${fhostname}" " "\n"
+tput setaf 2
+FinalIP=$(cat file2 | awk '{print $4}' | xargs sudo netselect -s 1 | awk '{print $2}')
+printf "%b\n"
+printf "%b" "${FinalIP}" " "
+tput setaf 3
+ping -c 2 "${FinalIP}" | tail -1| awk -F '/' '{print $5 "ms"}'
+printf "%b\n\n"
+tput sgr0
+rm file1 file2
+
+
+}
+
+banner() {
+	tput setaf 2
+cat <<"EOF"
+ ___   ___   _   _   _    __    _____   ___
+| _,\ | _ \ | | | \ / |  /  \  |_   _| | __|
+| v_/ | v / | | `\ V /' | /\ |   | |   | _|
+|_|   |_|_\ |_|   \_/   |_||_|   |_|   |___|
+ _   __  _   _____   ___   ___   __  _   ___   _____
+| | |  \| | |_   _| | __| | _ \ |  \| | | __| |_   _|
+| | | | ' |   | |   | _|  | v / | | ' | | _|    | |
+|_| |_|\__|   |_|   |___| |_|_\ |_|\__| |___|   |_|
+  __     ___   ___  ___    __    __       ___ __  __ __
+ /  \   / _/  / _/ | __| /' _/ /' _/     / _//__\|  V  |
+| /\ | | \__ | \__ | _|  `._`. `._`. __ | \_| \/ | \_/ |
+|_||_|  \__/  \__/ |___| |___/ |___/ \/  \__/\__/|_| |_|
+EOF
+tput sgr0
+printf "%b\n"
+
+}
+menu() {
+	
+tput rc
+#tput el	
+ValuePIA=$(curl -m 10 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected")
+
+if (( "${ValuePIA}" > 0 ))
+then
+#printf "%b\n"
+tput setaf 3
+   printf "%b" "You are currently connected to PIA's VPN service.
+More realistic results can be achived if you are not connected
+to PIA for the \"Fastest Server Check\""
+tput sgr0
+tput sc
+else
+tput sc
+printf "%b\n"
+fi
+tput rc
+printf "%b\n"
+cat <<"EOF"
+
+Select Country
+
+0. ALL SERVERS PIA OFFERS
+1. USA
+2. UK
+3. Canada
+4. Australia
+5. New Zealand
+6. Germany
+7. Hong Kong
+8. Japan
+9. Israel
+
+EOF
+tput sc
+read -n 1 selection
+case "${selection}" in
+
+	0)
+	LOCATION=""
+	printf "%b" "Checking All Servers Takes More Time....Be Patient" "\n";;
+	1)
+	LOCATION="us-";;
+	2)
+	LOCATION="uk-";;
+	3)
+	LOCATION="ca-";;
+	4)
+	LOCATION="au-";;
+	5)
+	LOCATION="nz.";;
+	6)
+	LOCATION="de-";;
+	7)
+	LOCATION="hk.";;
+	8)
+	LOCATION="japan.";;
+	9)
+	LOCATION="israel";;
+	*)
+	clear
+	banner
+	menu;;
+	esac
+	pia
+}
+function progressfilt {
+    local flag=false c count cr=$'\r' nl=$'\n'
+    while IFS='' read -d '' -rn 1 c
+    do
+        if $flag; then
+            printf '%s' "$c"
+        else
+            if [[ $c != $cr && $c != $nl ]]; then
+                count=0
+            else
+                ((count++))
+                if ((count > 1)); then
+                    flag=true
+                fi
+            fi
+        fi
+    done
+}
+
+function wget_nv {
+    wget "$@" --progress=bar:force 2>&1 | progressfilt
+}
+
+function speedtest {
+# Dependencies "wget"
+if command -v wget >/dev/null 2>&1 ; then
+tput rc
+tput el
+    printf "%b\n"
+
+else
+ScriptLoc=$(readlink -f "$0")
+tput rc
+tput setaf 1
+printf "%b\n" "wget is required for Speed Testing but not found"
+printf "%b\n"
+tput sgr0
+printf "%b\n" "Would you like to try to install it now?"
+printf "%b\n"
+
+read -r -n 1 -p "[y/N] " response
+case "$response" in
+    [yY]) 
+        sudo apt install wget
+        exec "$ScriptLoc"
+		;;
+    *)
+        
+		exec "$ScriptLoc"
+        ;;
+esac
+
+
+
+
+
+
+fi
+
+
+cat <<"EOF"
+
+Select Download Size
+
+1. 10  MB (USA or UK)
+2. 20  MB
+3. 50  MB
+4. 100 MB (USA or UK)
+5. 200 MB
+
+EOF
+tput sc
+	read -n 1 size
+case "${size}" in
+	1)
+	FileSize="10"
+tput rc
+printf "%b" "File Location?" "\n"
+
+	cat <<"EOF"
+
+1. USA
+2. UK
+EOF
+printf "%b\n\n"
+tput sc
+
+	read -n 1 url
+	if [ "${url}" ==  1 ]; then
+	LOC="USA"
+	URL="http://mirror.sfo12.us.leaseweb.net/speedtest/"${FileSize}"mb.bin"
+	else
+	URL="http://ipv4.download.thinkbroadband.com/"${FileSize}"MB.zip"
+	LOC="United Kingdom"
+	fi
+	 ;;
+	2)
+	FileSize="20"
+	URL="http://ipv4.download.thinkbroadband.com/"${FileSize}"MB.zip"
+		;;
+	3)
+	FileSize="50"
+	URL="http://ipv4.download.thinkbroadband.com/"${FileSize}"MB.zip"
+	;;
+	4)
+	FileSize="100"
+	tput rc
+	printf "%b" "File Location?" "\n"
+	cat <<"EOF"
+	
+1. USA
+2. UK
+EOF
+printf "%b\n\n"
+tput sc
+
+	read -n 1 url
+	if [ "${url}" ==  1 ]; then
+	LOC="USA"
+	URL="http://mirror.sfo12.us.leaseweb.net/speedtest/"${FileSize}"mb.bin"
+	else
+	URL="http://ipv4.download.thinkbroadband.com/"${FileSize}"MB.zip"
+	LOC="United Kingdom"
+	fi
+	;;
+	5)
+	FileSize="200"
+	URL="http://ipv4.download.thinkbroadband.com/"${FileSize}"MB.zip"
+	;;
+	*)
+	speedtest;;
+	
+   esac
+
+#http://mirror.sfo12.us.leaseweb.net/speedtest/"${FileSize}"mb.bin
+
+ 
+   
+tput rc
+printf "%b" "Using Test Files From "${URL}"" "\n\n"
+printf "%b\n" " "
+printf "%b" "Downloading "${FileSize}"MB File From  "${LOC}"" "\n\n"
+   wget_nv -O /dev/null "${URL}"
+}
+
+clear
+banner
+if ping -q -c 1 -W 1 google.com >/dev/null; then
+  main-selection
+else
+	printf "%b\n"
+  printf "%b" "Network appears to be down. Unable to reach google.com for network connectivity test" "\n\n"
+fi
+
