@@ -36,17 +36,19 @@ fi
 
 function main-selection {
 printf "%b\n"
-
+tput cup 15 0
+tput ed
 	cat <<"EOF"
 
 Select Option
 
 1. Check For PIA's Fastest Server
 2. Speed Test Your Current Connection Speed
+3. Exit / Quit
 
 EOF
 
-tput cup 20 0
+tput cup 22 0
 tput ed
 read -n 1 option
 
@@ -56,6 +58,11 @@ case "$option" in
         ;;
     2)
 		speedtest
+		;;
+    3)
+		tput cup 22 0
+		tput ed
+		exit
 		;;
     *)
         tput cup 12 0
@@ -68,15 +75,23 @@ esac
 
 
 pia() {
-tput cup 13 0
+tput cup 15 0
 tput ed
 printf "%b\n" " "
 printf "%b" "Checking For PIA's Fastest Server...Please Wait." "\n\n"
 if [ "${selection}" -eq 0 ]; then
+tput setaf 3
 printf "%b" "Checking All Servers Takes More Time....Be Patient" "\n"
 server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]')
+serverCount=$(printf "%b\n" "${server}" | wc -l)
+countries=$(printf "%b\n" "${server}" | cut -c 1-2 | uniq | wc -l)
+tput setaf 2
+printf "%b\n" "Checking "${serverCount}" Locations From "${countries}" Countries"
+tput sgr0
 else
 server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep "${LOCATION}")
+serverCount=$(printf "%b\n" "${server}" | wc -l)
+printf "%b\n" "Checking "${serverCount}" Locations in Selected Country"
 fi
 #
 # Sudo Check -----------------------------------------------------
@@ -86,28 +101,34 @@ if [ "${?}" -ne 0 ] ; then
 fi
 #-----------------------------------------------------------------
 #
-printf "${server}" | xargs sudo netselect -s 1 > file1
+printf "%b\n" "${server}"
+printf "%b\n" "${server}" | xargs sudo netselect -s 1 > file1
 tput cup 15 0
 tput ed
-printf "%b" "Fastest Server" "\n\n"
+printf "%b" "Fastest Hostname" "\n\n"
 tput setaf 1
 cat file1 | awk '{print $2}'
 fhostname=$(cat file1 | awk '{print $2}')
 printf "%b\n"
 cat file1 | awk '{printf $2}' | xargs host > file2
+IPs=$(cat file2 | awk '{print $4}')
 cAddresses=$(wc -l file2 | awk '{print $1}')
-printf "%b" ""${fhostname}"";tput setaf 3;printf "%b" " Has "${cAddresses}" IP Address's" "\n\n"
+printf "%b" "${fhostname}";tput setaf 3;printf "%b" " Has "${cAddresses}" Servers For That Hostname" "\n\n"
 tput sgr0
 printf "%b" "Checking For The Fastest IP Address To "${fhostname}" " "\n"
+printf "%b\n" "${IPs}" 
 tput setaf 2
 FinalIP=$(cat file2 | awk '{print $4}' | xargs sudo netselect -s 1 | awk '{print $2}')
-printf "%b\n"
-printf "%b" "${FinalIP}" " "
+#printf "%b" "${FinalIP}" " "
 tput setaf 3
-ping -c 2 "${FinalIP}" | tail -1| awk -F '/' '{print $5 "ms"}'
+resptime=$(ping -c 10 "${FinalIP}" | tail -1| awk -F '/' '{print $5 "ms"}')
+tput cup 22 0
+tput ed
+printf "%b\n"
+printf "%b\n" "${FinalIP}" "Has an Avg Response Time Of "${resptime}""
 printf "%b\n\n"
 tput sgr0
-rm file1 file2
+#rm file1 file2
 
 
 }
@@ -115,30 +136,34 @@ rm file1 file2
 banner() {
 	tput setaf 2
 cat <<"EOF"
- ___   ___   _   _   _    __    _____   ___
-| _,\ | _ \ | | | \ / |  /  \  |_   _| | __|
-| v_/ | v / | | `\ V /' | /\ |   | |   | _|
-|_|   |_|_\ |_|   \_/   |_||_|   |_|   |___|
- _   __  _   _____   ___   ___   __  _   ___   _____
-| | |  \| | |_   _| | __| | _ \ |  \| | | __| |_   _|
-| | | | ' |   | |   | _|  | v / | | ' | | _|    | |
-|_| |_|\__|   |_|   |___| |_|_\ |_|\__| |___|   |_|
-  __     ___   ___  ___    __    __       ___ __  __ __
- /  \   / _/  / _/ | __| /' _/ /' _/     / _//__\|  V  |
-| /\ | | \__ | \__ | _|  `._`. `._`. __ | \_| \/ | \_/ |
-|_||_|  \__/  \__/ |___| |___/ |___/ \/  \__/\__/|_| |_|
+  ____           _                   _                                    
+ |  _ \   _ __  (_) __   __   __ _  | |_    ___                           
+ | |_) | | '__| | | \ \ / /  / _` | | __|  / _ \                          
+ |  __/  | |    | |  \ V /  | (_| | | |_  |  __/                          
+ |_|_    |_|    |_|   \_/    \__,_|  \__|  \___|   _                      
+ |_ _|  _ __   | |_    ___   _ __   _ __     ___  | |_                    
+  | |  | '_ \  | __|  / _ \ | '__| | '_ \   / _ \ | __|                   
+  | |  | | | | | |_  |  __/ | |    | | | | |  __/ | |_                    
+ |___| |_| |_|  \__|  \___| |_|    |_| |_|  \___|  \__|                   
+    / \      ___    ___    ___   ___   ___        ___    ___    _ __ ___  
+   / _ \    / __|  / __|  / _ \ / __| / __|      / __|  / _ \  | '_ ` _ \ 
+  / ___ \  | (__  | (__  |  __/ \__ \ \__ \  _  | (__  | (_) | | | | | | |
+ /_/   \_\  \___|  \___|  \___| |___/ |___/ (_)  \___|  \___/  |_| |_| |_|
+                                                                          
 EOF
 tput sgr0
 printf "%b\n"
 
 }
 menu() {
-
+tput cup 22 0
+tput ed
+printf "%b\n" "Checking For VPN Connection"
 ValuePIA=$(curl -m 10 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected")
 
 if (( "${ValuePIA}" > 0 ))
 then
-tput cup 14 0
+tput cup 15 0
 tput ed
 tput setaf 3
    printf "%b" "You are currently connected to PIA's VPN service.
@@ -147,7 +172,7 @@ to PIA for the \"Fastest Server Check\""
 tput sgr0
 
 else
-tput cup 20 0
+tput cup 15 0
 tput ed
 fi
 
@@ -207,13 +232,13 @@ case "${selection}" in
 function speedtest {
 # Dependencies "wget"
 if command -v curl >/dev/null 2>&1 ; then
-tput cup 12 0
+tput cup 15 0
 tput ed
     printf "%b\n"
 
 else
 ScriptLoc=$(readlink -f "$0")
-tput cup 12 0
+tput cup 15 0
 tput ed
 tput setaf 1
 printf "%b\n" "curl is required for Speed Testing but not found"
@@ -237,13 +262,13 @@ esac
 fi
 
 if command -v bc >/dev/null 2>&1 ; then
-tput cup 12 0
+tput cup 15 0
 tput ed
     printf "%b\n"
 
 else
 ScriptLoc=$(readlink -f "$0")
-tput cup 12 0
+tput cup 15 0
 tput ed
 tput setaf 1
 printf "%b\n" "bc is required for Speed Testing but not found"
@@ -303,7 +328,7 @@ case "${size}" in
 	*)
 	speedtest;;
 	esac
-tput cup 23 0
+tput cup 26 0
 tput ed
 printf "%b" "Download "${FileSize}"MB File From?" "\n"
 
@@ -363,10 +388,10 @@ printf "%b\n\n"
 	speedtest
 	;;
 	esac
-tput cup 35 0
+tput cup 38 0
 tput ed	
-printf "%s\n" "Downloading From ${LOC} "
-tput cup 37 0
+printf "%s\n" "Downloading "${FileSize}"MB's From ${LOC} "
+tput cup 41 0
 tput ed	
 printf "%b\n" $(dirname "${URL}")
 tput setaf 3
@@ -375,6 +400,14 @@ tput setaf 5
 printf "%b\n" "$dlspeed" | bc -q | sed "s/$/ MB\/sec/;s/^/\tDownload Speed\: /";
 tput sgr0
 printf "%b\n"
+
+	read -n 1 -p " Press Any Key To Continue " continue
+	case "${continue}" in
+    *) 
+     exec $(readlink -f "$0")
+     #exec "$ScriptLoc"
+     ;;
+     esac
 }
 
 clear
