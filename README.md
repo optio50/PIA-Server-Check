@@ -1,5 +1,5 @@
 # PIA-Server-Check
-Find the fastest PIA server
+Find the fastest PIA (Private Internet Access) VPN server
 
 Netselect is required. You can download it from
 
@@ -16,7 +16,10 @@ http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_am
 
 install with sudo dpkg -i netselect_0.3.ds1-28+b1_*.deb
 
-This script will offer some default countries for selection or check ALL the server PIA offers.
+Script will offer to download and install netselect curl and or wget if you dont have them installed. Ubuntu or similar distro only (apt & sudo)
+
+
+This PIA script will offer some default countries for selection or check ALL the server PIA offers.
 
  
 Select Country
