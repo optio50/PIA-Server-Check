@@ -1,4 +1,4 @@
- #!/bin/bash
+#!/bin/bash
 #
 #World Wide Servers by ip
 #wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
@@ -14,6 +14,30 @@
 # sudo and apt are used to offer user to install an unmet dependancy that is package installable
 # Outside of package manager Dependency requires manual install
 #----------------------------------------------------------------------------------------------------
+
+
+spin()
+{
+  #spinner="/|\\-/|\\-"
+  #while :
+  #do
+  #  for i in `seq 0 7`
+  #  do
+  #    echo -n "${spinner:$i:1}"
+  #    echo -en "\010"
+  #    sleep .5
+  #  done
+  #done
+printf "["
+tput setaf 2
+while kill -0 $SPIN_PID 2> /dev/null; do 
+    printf  "*"
+    sleep 2
+done
+tput sgr0
+printf "]"  
+}
+
 tput sgr0 # Reset Terminal Colors
 if command -v netselect >/dev/null 2>&1 ; then
     printf "%b\n"
@@ -140,45 +164,25 @@ esac
 fi
 
 
-#----------------------------------------------------
-
-
-
-
-
-
-#cat <<"EOF"
-#
-#wget http://ftp.us.debian.org/debian/pool/main/n/netselect/*****Filename_Above********.deb
-#
-#or
-#
-#curl -O http://ftp.us.debian.org/debian/pool/main/n/netselect/*****Filename_Above********.deb
-#
-#EOF
-
-tput sgr0 # Reset Terminal Colors
-#exit
-#fi
-#clear
-
 # Check for Internet Access with max retries of 3 then print message
 clear
 tput cup 5 0
 printf "%b\n" "Checking For Internet Access"; printf "%b\n" "Pinging Google.com"; tput blink; printf "%b\n" ".";tput cup 9 0;tput sgr0 # Reset Terminal Colors
+
 if ping -q -c 2 -W 1 google.com >/dev/null; then
   clear
 else 
 n=0
-   until [ $n -ge 2 ]
+   until [ $n -gt 2 ]
    do
-      ping -q -c 2 -W 1 google.com >/dev/null 
+      ping -q -c 2 -W 1 google.com >/dev/null
       if [ $? -eq 0 ]; then
         break
       fi
-      n=$[$n+1]
+      n=$(($n+1))
 
    done
+   
 clear
 tput cup 15 0
 printf "%b\n" "Retried 3 Times"
@@ -263,10 +267,11 @@ esac
 # Begin Function PIA Server Check. #1 from main menu
 #------------------------------------------------------------------------------------------------------
 Server_Check() {
+
 tput cup 15 0 # Move cursor to line 15 column 0
 tput ed # Delete text below cursor
-printf "%b\n" " "
-printf "%b" "Checking For PIA's Fastest Server...Please Wait." "\n\n"
+#printf "%b\n" " "
+#printf "%b" "Checking For PIA's Fastest Server...Please Wait." "\n\n"
 # Checks ALL PIA Worldwide Servers
 #------------------------------------------------------------------------------------------------------
 if [ "${selection}" -eq 0 ]; then # Zero from PIA_Menu. All servers PIA has
@@ -297,10 +302,19 @@ tput setaf 1 # Red Text
 sudo -nv 2> /dev/null
 if [ "${?}" -ne 0 ] ; then
 printf "%b" "Netselect Requires Root Access To Run" "\n\n"
+tput sgr0 # Reset Terminal Colors
+sudo netselect 2> /dev/null
 fi
 #-----------------------------------------------------------------
-printf "%b\n\n"
-printf "%b\n" "${server}" | xargs sudo netselect -s 1 > file1 # Pipes each of the servers into Netselect and selects fastest
+#tput cup 0 15
+tput setaf 2 # Green Text
+printf "%b" "Checking For PIA's Fastest Server...Please Wait." "\n\n"
+tput sgr0 # Reset Terminal Colors
+printf "%b\n" "${server}" | xargs sudo netselect -s 1 > file1 & SPIN_PID=$! # Pipes each of the servers into Netselect and selects fastest
+spin
+wait
+disown $SPIN_PID
+kill -9 $SPIN_PID
 tput sgr0 # Reset Terminal Colors
 tput cup 15 0 # Move cursor to line 15 column 0
 tput ed # Delete text below cursor
@@ -311,32 +325,44 @@ host "${fhostname}" > file2 # Pipe fastest hostname into the command 'host' to f
 IPs=$(cat file2 | awk '{print $4}') # Save IP addresses
 cAddresses=$(wc -l file2 | awk '{print $1}') # Count IP addresses
 tput sgr0
-printf "%b" "Checking For The Fastest IP Address To";tput setaf 2; printf "%b" " "${fhostname}" " "\n\n"
 printf "%b" "${fhostname}";tput setaf 3;printf "%b" " Has "${cAddresses}" Servers For That Hostname" "\n\n" # Print the number of IP addresses
 tput sgr0 # Reset Terminal Colors
 printf "%b\n" "${IPs}" # Print IP addresses
+printf "%b\n" 
+printf "%b" "Checking For The Fastest IP Address To";tput setaf 2; printf "%b" " "${fhostname}" " "\n\n"
 tput setaf 2 # Green Text
-FinalIP=$(printf "%b\n" "${IPs}" | xargs sudo netselect -s 1 | awk '{print $2}') # Pipe the saved IP's in Netselect and select fastest IP
-tput setaf 3 # Yellow Text
-resptime=$(ping -c 10 "${FinalIP}" | tail -1| awk -F '/' '{print $5 "ms"}') # Save the average ping time of the fastest IP
-tput cup 20 0 # Move cursor to line 20 column 0
+printf "%b\n" "${IPs}" | xargs sudo netselect -s 1 > file3 & SPIN_PID=$! # Pipe the saved IP's in Netselect and select fastest IP
+spin
+wait
+FinalIP=$(awk '{print $2}' file3)
+disown $SPIN_PID
+kill -9 $SPIN_PID
+tput cup 16 0 # Move cursor to line 20 column 0
+tput ed # Delete text below cursor
+ping -c 10 "${FinalIP}" > file4 & SPIN_PID=$! # Save the average ping time of the fastest IP
+printf "%b\n" "Measuring Response Time For The Fastest IP Address"
+spin
+wait
+disown $SPIN_PID
+kill -9 $SPIN_PID
+resptime=$(tail -1 file4 | awk -F '/' '{print $5 "ms"}')
+tput cup 16 0 # Move cursor to line 20 column 0
 tput ed # Delete text below cursor
 printf "%b\n"
-printf "%b\n" "${FinalIP}" "Has an Avg Response Time Of "${resptime}"" # Print fastest IP and average ping time
-
+tput setaf 3 # Yellow Text
+printf "%b\n\n" "${FinalIP}" "Is The Fastest IP Address and Has an Avg Response Time Of "${resptime}"" # Print fastest IP and average ping time
 tput sgr0
-rm file1 file2 # remove the temporary files
 
-# restart script after Server check
-
+rm file1 file2 file3 file4 2> /dev/null # remove the temporary files
 cat <<"EOF"
-
-Test Complete
 
 Select Option
 
 1. Back To Main Menu
-2. Exit / Quit
+
+Or
+
+Any Key To Exit / Quit
 
 EOF
 
@@ -381,7 +407,6 @@ cat <<"EOF"
 
 Select Country
 
-0. ALL SERVERS PIA OFFERS
 1. USA
 2. UK
 3. Canada
@@ -391,6 +416,9 @@ Select Country
 7. Hong Kong
 8. Japan
 9. Israel
+0. ALL SERVERS PIA OFFERS
+
+Any Other Key To Main Menu
 
 EOF
 # read country selection and wait for a single key press
@@ -577,5 +605,14 @@ printf "%b\n"
      ;;
      esac
 }
+function ctrl_c() {
+        echo "CTRL-C Detected...Exiting"
+	disown $SPIN_PID
+	kill -9 $SPIN_PID 2> /dev/null
+	rm file1 file2 file3 file4 2> /dev/null
+	exit
+}
+trap ctrl_c SIGINT
+#trap ctrl_c SIGTERM
 Banner
 Main_Menu
