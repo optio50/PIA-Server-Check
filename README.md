@@ -7,9 +7,12 @@ PIA Protection Check
 
 Download Speed Test with Auto Select Fastest Server
 
+==========================================================================
 
+Netselect is required.
 
-Netselect is required. You can download it from
+Netselect needs to run as an administrator user (i.e. root). This is only required because the network probes done by netselect requires these permissions. No changes are done to the system.
+You can download it from
 
 http://ftp.us.debian.org/debian/pool/main/n/netselect/
 
