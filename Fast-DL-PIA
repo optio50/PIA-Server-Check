@@ -126,7 +126,7 @@ fi
 #----------------------------------------------------
 # Dependencies "curl"
 if curl -V >/dev/null 2>&1 ; then
-tput cup 15 0
+tput cup 0 0
 tput ed
     printf "%b\n"
 
@@ -156,12 +156,16 @@ fi
 
 
 # Check for Internet Access with max retries of 3 then print message
-clear
+#clear
+tput cup 0 0 # Move cursor to line 15 column 0
+tput ed # Clear all text below cursor
 tput cup 5 0
-printf "%b\n" "Checking For Internet Access"; printf "%b\n" "Pinging Google.com"; tput blink; printf "%b\n" ".";tput cup 9 0;tput sgr0 # Reset Terminal Colors
 
+printf "%b\n" "Checking For Internet Access"; printf "%b\n" "Pinging Google.com"; tput blink; printf "%b\n" ".";tput cup 9 0;tput sgr0 # Reset Terminal Colors
+tput civis
 if ping -q -c 2 -W 1 google.com >/dev/null; then
-  clear
+printf "%b\n"
+  #clear
 else 
 n=0
    until [ $n -gt 2 ]
@@ -174,10 +178,12 @@ n=0
 
    done
    
-clear
-tput cup 15 0
+tput cup 0 0 # Move cursor to line 15 column 0
+tput ed # Clear all text below cursor
+tput cup 5 0
 printf "%b\n" "Retried 3 Times"
 printf "%b" "Network appears to be down. Unable to reach google.com for network connectivity test" "\n\n"
+tput cnorm
 exit
 fi
 
@@ -185,38 +191,65 @@ fi
 
 
 Banner() {
-	tput setaf 2 # Green Text
+tput cup 0 0 # Move cursor to line 15 column 0
+tput ed # Clear all text below cursor
+tput setaf 2 # Green Text
 cat <<"EOF"
-  ____           _                   _                                    
- |  _ \   _ __  (_) __   __   __ _  | |_    ___                           
- | |_) | | '__| | | \ \ / /  / _` | | __|  / _ \                          
- |  __/  | |    | |  \ V /  | (_| | | |_  |  __/                          
- |_|_    |_|    |_|   \_/    \__,_|  \__|  \___|   _                      
- |_ _|  _ __   | |_    ___   _ __   _ __     ___  | |_                    
-  | |  | '_ \  | __|  / _ \ | '__| | '_ \   / _ \ | __|                   
-  | |  | | | | | |_  |  __/ | |    | | | | |  __/ | |_                    
- |___| |_| |_|  \__|  \___| |_|    |_| |_|  \___|  \__|                   
-    / \      ___    ___    ___   ___   ___        ___    ___    _ __ ___  
-   / _ \    / __|  / __|  / _ \ / __| / __|      / __|  / _ \  | '_ ` _ \ 
-  / ___ \  | (__  | (__  |  __/ \__ \ \__ \  _  | (__  | (_) | | | | | | |
- /_/   \_\  \___|  \___|  \___| |___/ |___/ (_)  \___|  \___/  |_| |_| |_|
+https://github.com/optio50/PIA-Server-Check
+
+    ____           _                   _                                    
+   |  _ \   _ __  (_) __   __   __ _  | |_    ___                           
+   | |_) | | '__| | | \ \ / /  / _` | | __|  / _ \                          
+   |  __/  | |    | |  \ V /  | (_| | | |_  |  __/                          
+   |_|_    |_|    |_|   \_/    \__,_|  \__|  \___|   _                      
+   |_ _|  _ __   | |_    ___   _ __   _ __     ___  | |_                    
+    | |  | '_ \  | __|  / _ \ | '__| | '_ \   / _ \ | __|                   
+    | |  | | | | | |_  |  __/ | |    | | | | |  __/ | |_                    
+   |___| |_| |_|  \__|  \___| |_|    |_| |_|  \___|  \__|                   
+    / \      ___    ___    ___   ___   ___      ___    ___    _ __ ___  
+   / _ \    / __|  / __|  / _ \ / __| / __|    / __|  / _ \  | '_ ` _ \ 
+  / ___ \  | (__  | (__  |  __/ \__ \ \__ \   | (__  | (_) | | | | | | |
+ /_/   \_\  \___|  \___|  \___| |___/ |___/ ✴  \___|  \___/  |_| |_| |_|
                                                                           
+
 EOF
 tput sgr0 # Reset Terminal Colors
 printf "%b\n"
 
 }
 #------------------------------------------------------------------------------------------------------
+Links(){
+	tput setaf 2 # Green Text
+tput cup 16 0 # Move cursor to line 15 column 0
+tput ed # Clear all text below cursor
+cat <<"EOF"
 
+https://www.privateinternetaccess.com/				PIA Homepage
+https://www.privateinternetaccess.com/blog/			PIA News
+https://www.privateinternetaccess.com/pages/network/		Server Locations
+https://www.privateinternetaccess.com/pages/download		Download PIA Client
+https://www.privateinternetaccess.com/helpdesk/			Support / Help
+https://www.privateinternetaccess.com/pages/how-it-works/	How VPN Packages Work
+
+EOF
+tput sgr0 # Reset Terminal Colors
+#tput civis
+	read -n 1 -p " Press Any Key To Continue " continue
+	case "${continue}" in
+    *) 
+     Main_Menu
+     ;;
+     esac
+}
 
 #------------------------------------------------------------------------------------------------------
 # if dependency and network check is confirmed. Banner function runs then Main_Menu 
 # Select Either Speed Test Or PIA Server Check
 function Main_Menu {
 printf "%b\n"
-tput cup 15 0 # Move cursor to line 15 column 0
+tput cup 16 0 # Move cursor to line 15 column 0
 tput ed # Clear all text below cursor
-
+tput civis
 # Begin Print Main Menu Selections
 	cat <<"EOF"
 
@@ -224,12 +257,14 @@ Select Option
 
 1. Check For PIA's Fastest Server
 2. Speed Test Your Current Connection Speed
-3. Exit / Quit
+3. PIA Links
+4. Whats My IP & Location
+5. Exit / Quit
 
 EOF
 # End Print Main Menu Selections
 
-tput cup 22 0 # Move cursor to line 22 column 0
+tput cup 24 0 # Move cursor to line 22 column 0
 tput ed # Clear all text below cursor
 
 read -n 1 option # Wait and read menu selection then continue with a single key press
@@ -241,9 +276,35 @@ case "${option}" in
     2)
 		Speed_Test
 		;;
-    3)
-		tput cup 22 0
+	3)
+		tput el1
+		Links
+		;;
+	4)
+		tput el1
+		printf "%b\n"
+		printf "%b\n" "Checking IP & Location Information"
+		PIAconnect=$(curl -m 10 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected")
+		if (( "${PIAconnect}" > 0 )) ; then
+		tput setaf 2 # Green Text
+		printf "%b\n" "You are Protected By PIA"
+		else
+		tput setaf 1 # Red Text
+		printf "%b\n" "You are NOT Protected By PIA"
+		fi
+		tput sgr0 # Reset Terminal Colors
+		curl -s "http://ipinfo.io/" | awk -F: '{print $2}' | sed 's/[",]//g' 
+		read -n 1 -p " Press Any Key To Continue " continue
+	case "${continue}" in
+    *) 
+     Main_Menu
+     ;;
+     esac
+	 ;;
+    5)
+		tput cup 24 0
 		tput ed
+		tput cnorm
 		exit
 		;;
     *)
@@ -259,7 +320,7 @@ esac
 #------------------------------------------------------------------------------------------------------
 Server_Check() {
 
-tput cup 15 0 # Move cursor to line 15 column 0
+tput cup 16 0 # Move cursor to line 15 column 0
 tput ed # Delete text below cursor
 #printf "%b\n" " "
 #printf "%b" "Checking For PIA's Fastest Server...Please Wait." "\n\n"
@@ -308,7 +369,7 @@ wait
 disown $SPIN_PID
 kill -9 $SPIN_PID
 tput sgr0 # Reset Terminal Colors
-tput cup 15 0 # Move cursor to line 15 column 0
+tput cup 16 0 # Move cursor to line 15 column 0
 tput ed # Delete text below cursor
 fhostname=$(cat file1 | awk '{print $2}') # Save fastest hostname
 printf "%b" "Fastest Hostname ";tput setaf 1; printf "%b" "${fhostname}" "\n"
@@ -368,20 +429,21 @@ EOF
     *)
      tput ech 1
      printf "%b\n"
+     tput cnorm
      exit
      ;;
      esac
 }
 
 PIA_Menu() {
-tput cup 22 0 # Move cursor to line 22 column 0
+tput cup 24 0 # Move cursor to line 22 column 0
 tput ed # Delete text below cursor
 printf "%b\n" "Checking For VPN Connection"
 ValuePIA=$(curl -m 10 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected") #Check if already connected PIA
 
 if (( "${ValuePIA}" > 0 ))
 then
-tput cup 15 0 # Move cursor to line 15 column 0
+tput cup 17 0 # Move cursor to line 15 column 0
 tput ed # Delete text below cursor
 tput setaf 3 # Yellow Text
 # Warning about slower ping times while being connected to PIA
@@ -390,7 +452,7 @@ More realistic results can be achived if you are not connected
 to PIA for the \"Fastest Server Check\""
 tput sgr0 # reset terminal colors
 else
-tput cup 15 0 # Move cursor to line 15 column 0
+tput cup 17 0 # Move cursor to line 15 column 0
 tput ed # Delete text below cursor
 fi
 
@@ -444,7 +506,7 @@ case "${selection}" in
 	#clear
 	#Banner
 	Main_Menu
-	tput cup 14 0
+	tput cup 16 0
 	tput ed
 	;;
 	esac
@@ -453,13 +515,13 @@ case "${selection}" in
 
 function Speed_Test {
 if command -v bc >/dev/null 2>&1 ; then
-tput cup 15 0
+tput cup 16 0
 tput ed
 printf "%b\n"
 
 else
 
-tput cup 15 0
+tput cup 16 0
 tput ed
 tput setaf 1
 printf "%b\n" "bc is required for Speed Testing but not found"
@@ -520,7 +582,7 @@ case "${size}" in
 	Main_Menu	
 	;;
 	esac
-tput cup 27 0
+tput cup 28 0
 tput ed
 printf "%b" "Download "${FileSize}"MB File From?" "\n"
 
@@ -582,10 +644,10 @@ printf "%b\n\n"
 	Main_Menu
 	;;
 	esac
-tput cup 40 0
+tput cup 41 0
 tput ed	
 printf "%s\n" "Downloading "${FileSize}"MB's From ${LOC} "
-tput cup 42 0
+tput cup 43 0
 tput ed	
 printf "%b\n" $(dirname "${URL}")
 tput setaf 3
@@ -608,6 +670,7 @@ function ctrl_c() {
 	disown $SPIN_PID 2> /dev/null
 	kill -9 $SPIN_PID 2> /dev/null
 	rm file1 file2 file3 file4 2> /dev/null
+	tput cnorm
 	exit
 }
 trap ctrl_c SIGINT
