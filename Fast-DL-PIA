@@ -320,7 +320,7 @@ esac
 #------------------------------------------------------------------------------------------------------
 Server_Check() {
 
-tput cup 16 0 # Move cursor to line 15 column 0
+tput cup 17 0 # Move cursor to line 15 column 0
 tput ed # Delete text below cursor
 #printf "%b\n" " "
 #printf "%b" "Checking For PIA's Fastest Server...Please Wait." "\n\n"
@@ -369,7 +369,7 @@ wait
 disown $SPIN_PID
 kill -9 $SPIN_PID
 tput sgr0 # Reset Terminal Colors
-tput cup 16 0 # Move cursor to line 15 column 0
+tput cup 17 0 # Move cursor to line 15 column 0
 tput ed # Delete text below cursor
 fhostname=$(cat file1 | awk '{print $2}') # Save fastest hostname
 printf "%b" "Fastest Hostname ";tput setaf 1; printf "%b" "${fhostname}" "\n"
@@ -391,7 +391,7 @@ wait
 FinalIP=$(awk '{print $2}' file3)
 disown $SPIN_PID
 kill -9 $SPIN_PID
-tput cup 16 0 # Move cursor to line 20 column 0
+tput cup 18 0 # Move cursor to line 20 column 0
 tput ed # Delete text below cursor
 ping -c 10 "${FinalIP}" > file4 & SPIN_PID=$! # Save the average ping time of the fastest IP
 printf "%b\n" "Measuring Response Time For The Fastest IP Address"
@@ -401,7 +401,7 @@ wait
 disown $SPIN_PID
 kill -9 $SPIN_PID
 resptime=$(tail -1 file4 | awk -F '/' '{print $5 "ms"}')
-tput cup 16 0 # Move cursor to line 20 column 0
+tput cup 18 0 # Move cursor to line 20 column 0
 tput ed # Delete text below cursor
 printf "%b\n"
 tput setaf 3 # Yellow Text
@@ -438,6 +438,7 @@ EOF
 PIA_Menu() {
 tput cup 24 0 # Move cursor to line 22 column 0
 tput ed # Delete text below cursor
+printf "%b\n"
 printf "%b\n" "Checking For VPN Connection"
 ValuePIA=$(curl -m 10 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected") #Check if already connected PIA
 
