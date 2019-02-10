@@ -1,3 +1,4 @@
+[[https://github.com/optio50/PIA-Server-Check/blob/master/PIA.png?raw=true|alt=octocat]]
 # PIA-Server-Check
 Find the Fastest PIA (Private Internet Access) VPN server in Your Country (Auto or Manual)
 
