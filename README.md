@@ -1,5 +1,10 @@
 # PIA-Server-Check
-Find the fastest PIA (Private Internet Access) VPN server
+Find the Fastest PIA (Private Internet Access) VPN server in Your Country (Auto or Manual)
+Geo Location Readout
+PIA Protection Check
+Download Speed Test with Auto Select Fastest Server
+
+
 
 Netselect is required. You can download it from
 
