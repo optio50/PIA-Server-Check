@@ -231,15 +231,18 @@ https://www.privateinternetaccess.com/pages/download		Download PIA Client
 https://www.privateinternetaccess.com/helpdesk/			Support / Help
 https://www.privateinternetaccess.com/pages/how-it-works/	How VPN Packages Work
 
+
+
+https://www.facebook.com/privateinternetaccess			FACEBOOK
+https://twitter.com/buyvpnservice				TWITTER
+https://www.reddit.com/r/PrivateInternetAccess/			REDDIT
+https://www.youtube.com/user/vpnservice/videos			YOUTUBE
+
 EOF
 tput sgr0 # Reset Terminal Colors
 #tput civis
 	read -n 1 -p " Press Any Key To Continue " continue
-	case "${continue}" in
-    *) 
-     Main_Menu
-     ;;
-     esac
+	Main_Menu
 }
 
 #------------------------------------------------------------------------------------------------------
@@ -295,13 +298,9 @@ case "${option}" in
 		tput sgr0 # Reset Terminal Colors
 		curl -s "http://ipinfo.io/" | awk -F: '{print $2}' | sed 's/[",]//g' 
 		read -n 1 -p " Press Any Key To Continue " continue
-	case "${continue}" in
-    *) 
-     Main_Menu
-     ;;
-     esac
-	 ;;
-    5)
+	    Main_Menu
+		;;
+	5)
 		tput cup 24 0
 		tput ed
 		tput cnorm
@@ -589,6 +588,7 @@ printf "%b" "Download "${FileSize}"MB File From?" "\n"
 
 	cat <<"EOF"
 
+0. Auto Select Fastest Location
 1. USA
 2. UK
 3. Germany
@@ -598,7 +598,6 @@ printf "%b" "Download "${FileSize}"MB File From?" "\n"
 7. Italy
 8. Japan
 9. Australia
-0. Main Menu
 EOF
 
 printf "%b\n\n"
@@ -641,12 +640,17 @@ printf "%b\n\n"
 	URL="http://au-sy.serverlocation.co:82/1Gio.dat"
 	LOC="Australia"
 	;;
+	0)
+	Autoselect
+	URL=${BestDL}
+	;;
 	*)
 	Main_Menu
 	;;
 	esac
 tput cup 41 0
-tput ed	
+tput ed
+tput sgr0
 printf "%s\n" "Downloading "${FileSize}"MB's From ${LOC} "
 tput cup 43 0
 tput ed	
@@ -659,18 +663,88 @@ tput sgr0
 printf "%b\n"
 
 	read -n 1 -p " Press Any Key To Continue " continue
-	case "${continue}" in
-    *) 
-     exec $(readlink -f "$0")
-     ;;
-     esac
+	Main_Menu
 }
+
+# Auto select the fastest speed test file download site
+function Autoselect {
+tput cup 41 0
+tput ed
+printf "%b\n" "Auto Selecting Fastest Location....Please wait"
+	declare -a arr=(
+http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin
+http://ipv4.download.thinkbroadband.com/512MB.zip
+https://speed.hetzner.de/1GB.bin
+https://iperf.worldstream.nl/1000mb.bin
+http://ca-mr2-smart.serverlocation.co:82/1Gio.dat
+http://sg-smart.serverlocation.co:82/1Gio.dat
+http://it-ml-smart.serverlocation.co:82/1Gio.dat
+http://jp-tk-smart.serverlocation.co:82/1Gio.dat
+http://au-sy.serverlocation.co:82/1Gio.dat
+)
+# Sudo Check
+#-----------------------------------------------------------------
+tput setaf 1 # Red Text
+sudo -nv 2> /dev/null
+if [ "${?}" -ne 0 ] ; then
+printf "%b" "Netselect Requires Root Access To Run" "\n\n"
+tput sgr0 # Reset Terminal Colors
+sudo netselect 2> /dev/null
+fi
+#-----------------------------------------------------------------
+sudo netselect "${arr[@]}" | awk '{print $2}' > file5 & SPIN_PID=$!
+PBint=1
+spin
+wait
+disown $SPIN_PID
+kill -9 $SPIN_PID
+BestDL=$(cat file5)
+rm file5 2> /dev/null
+if [ "${BestDL}" = http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin ]; then
+LOC=USA
+elif
+[ "${BestDL}" = http://ipv4.download.thinkbroadband.com/512MB.zip ]; then
+LOC="United Kingdom"
+elif
+[ "${BestDL}" = https://speed.hetzner.de/1GB.bin ]; then
+LOC="Germany"
+elif
+[ "${BestDL}" = https://iperf.worldstream.nl/1000mb.bin ]; then
+LOC="Netherlands"
+elif
+[ "${BestDL}" = http://ca-mr2-smart.serverlocation.co:82/1Gio.dat ]; then
+LOC="Canada"
+elif
+[ "${BestDL}" = http://sg-smart.serverlocation.co:82/1Gio.dat ]; then
+LOC="Singapore"
+elif
+[ "${BestDL}" = http://it-ml-smart.serverlocation.co:82/1Gio.dat ]; then
+LOC="Italy"
+elif
+[ "${BestDL}" = http://jp-tk-smart.serverlocation.co:82/1Gio.dat ]; then
+LOC="Japan"
+elif
+[ "${BestDL}" = http://au-sy.serverlocation.co:82/1Gio.dat ]; then
+LOC="Australia"
+else
+tput setaf 1 # Red Text
+printf "%b\n\n" "Unable to determine the fastest location. Manual Selection Required"
+tput sgr0
+rm file5 2> /dev/null
+read -n 1 -p " Press Any Key To Continue " continue
+Speed_Test
+fi
+}
+
+
+
+
 function ctrl_c() {
 		tput el1
         printf "%b\n\n" "CTRL-C Detected...Exiting"
 	disown $SPIN_PID 2> /dev/null
 	kill -9 $SPIN_PID 2> /dev/null
-	rm file1 file2 file3 file4 2> /dev/null
+	rm file1 file2 file3 file4 file5 2> /dev/null
 	tput cnorm
 	exit
 }
