@@ -3,7 +3,7 @@
 #World Wide Servers by ip
 #wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
 #
-# Some Test File Locations
+# Some Speed Test File Locations
 # http://support.smartdnsproxy.com/customer/portal/articles/1907772-vpn-server-locations-addresses
 #
 # U.S Servers by ip
@@ -18,21 +18,12 @@
 
 spin()
 {
-  #spinner="/|\\-/|\\-"
-  #while :
-  #do
-  #  for i in `seq 0 7`
-  #  do
-  #    echo -n "${spinner:$i:1}"
-  #    echo -en "\010"
-  #    sleep .5
-  #  done
-  #done
+  
 printf "["
 tput setaf 2
 while kill -0 $SPIN_PID 2> /dev/null; do 
-    printf  "*"
-    sleep 2
+    printf  "✴ "
+    sleep "${PBint}"
 done
 tput sgr0
 printf "]"  
@@ -311,6 +302,7 @@ tput setaf 2 # Green Text
 printf "%b" "Checking For PIA's Fastest Server...Please Wait." "\n\n"
 tput sgr0 # Reset Terminal Colors
 printf "%b\n" "${server}" | xargs sudo netselect -s 1 > file1 & SPIN_PID=$! # Pipes each of the servers into Netselect and selects fastest
+PBint=2
 spin
 wait
 disown $SPIN_PID
@@ -332,6 +324,7 @@ printf "%b\n"
 printf "%b" "Checking For The Fastest IP Address To";tput setaf 2; printf "%b" " "${fhostname}" " "\n\n"
 tput setaf 2 # Green Text
 printf "%b\n" "${IPs}" | xargs sudo netselect -s 1 > file3 & SPIN_PID=$! # Pipe the saved IP's in Netselect and select fastest IP
+PBint=1
 spin
 wait
 FinalIP=$(awk '{print $2}' file3)
@@ -341,6 +334,7 @@ tput cup 16 0 # Move cursor to line 20 column 0
 tput ed # Delete text below cursor
 ping -c 10 "${FinalIP}" > file4 & SPIN_PID=$! # Save the average ping time of the fastest IP
 printf "%b\n" "Measuring Response Time For The Fastest IP Address"
+PBint=.5
 spin
 wait
 disown $SPIN_PID
@@ -498,6 +492,7 @@ Select Download Size
 4. 100 MB
 5. 200 MB
 6. 500 MB
+7. Main Menu
 
 EOF
 
@@ -522,9 +517,10 @@ case "${size}" in
 	FileSize="500"
 	;;
 	*)
-	Speed_Test;;
+	Main_Menu	
+	;;
 	esac
-tput cup 26 0
+tput cup 27 0
 tput ed
 printf "%b" "Download "${FileSize}"MB File From?" "\n"
 
@@ -535,10 +531,11 @@ printf "%b" "Download "${FileSize}"MB File From?" "\n"
 3. Germany
 4. Netherlands
 5. Canada
-6. Hong Kong
+6. Singapore
 7. Italy
 8. Japan
 9. Australia
+0. Main Menu
 EOF
 
 printf "%b\n\n"
@@ -566,8 +563,8 @@ printf "%b\n\n"
 	LOC="Canada"
 	;;
 	6)	
-	URL="http://hk.serverlocation.co:82/1Gio.dat"
-	LOC="Hong Kong"
+	URL="http://sg-smart.serverlocation.co:82/1Gio.dat"
+	LOC="Singapore"
 	;;
 	7)	
 	URL="http://it-ml-smart.serverlocation.co:82/1Gio.dat"
@@ -582,13 +579,13 @@ printf "%b\n\n"
 	LOC="Australia"
 	;;
 	*)
-	Speed_Test
+	Main_Menu
 	;;
 	esac
-tput cup 38 0
+tput cup 40 0
 tput ed	
 printf "%s\n" "Downloading "${FileSize}"MB's From ${LOC} "
-tput cup 41 0
+tput cup 42 0
 tput ed	
 printf "%b\n" $(dirname "${URL}")
 tput setaf 3
@@ -606,8 +603,9 @@ printf "%b\n"
      esac
 }
 function ctrl_c() {
-        echo "CTRL-C Detected...Exiting"
-	disown $SPIN_PID
+		tput el1
+        printf "%b\n\n" "CTRL-C Detected...Exiting"
+	disown $SPIN_PID 2> /dev/null
 	kill -9 $SPIN_PID 2> /dev/null
 	rm file1 file2 file3 file4 2> /dev/null
 	exit
