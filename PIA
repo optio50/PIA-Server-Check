@@ -1,0 +1,906 @@
+#!/bin/bash
+tput smcup
+#World Wide Servers by ip
+#wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
+#
+# Some Speed Test File Locations
+# http://support.smartdnsproxy.com/customer/portal/articles/1907772-vpn-server-locations-addresses
+#
+# U.S Servers by ip
+#wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep us- | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
+CHECKMARK="$(tput sgr0)[$(tput setaf 2)✔$(tput sgr0)]"
+XMARK="$(tput sgr0)[$(tput setaf 1)X$(tput sgr0)]"
+# tput is used to move the cursor and change colors
+# This script is only verified with Ubuntu and distros based on Ubuntu
+# sudo and apt are used to offer user to install an unmet dependancy that is package installable
+# Outside of package manager Dependency requires manual install
+#----------------------------------------------------------------------------------------------------
+if command -v resize >/dev/null 2>&1 ; then
+    resize -s 50 90
+
+else
+    printf '\e[8;50;90t'
+fi
+
+spin()
+{
+
+    printf "["
+    tput setaf 2
+    while kill -0 "$SPIN_PID" 2> /dev/null; do
+        printf  "✴ "
+        sleep "${PBint}"
+    done
+    tput sgr0
+    printf "]"
+}
+
+tput sgr0 # Reset Terminal Colors
+if command -v netselect >/dev/null 2>&1 ; then
+    printf "%b\n"
+
+else
+    clear
+    printf "%b\n\n"
+    tput setaf 1 # Red Text
+    printf "%b\n" "Netselect is required but not found. You can download it from"
+    tput sgr0 # Reset Terminal Colors
+
+    tput setaf 3 # Magenta Text
+    cat <<"EOF"
+
+http://ftp.us.debian.org/debian/pool/main/n/netselect/
+http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_i386.deb		i386
+http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_arm64.deb		ARM64
+http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_armhf.deb		ARMHF
+http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_amd64.deb		AMD64
+
+EOF
+
+    if command -v wget >/dev/null 2>&1 ; then
+        Downloader="wget"
+elif
+    command -v curl >/dev/null 2>&1 ; then
+        Downloader="curl"
+    fi
+
+    tput sgr0 # Reset Terminal Colors
+    printf "%b\n" "Your Architecture (i386, x86_64, etc.) Is"
+    tput setaf 2 # Green Text
+    arch=$(dpkg --print-architecture);printf "%b\n\t"; tput blink; printf "%b\n" "${arch}"
+    tput sgr0 # Reset Terminal Colors
+    printf "%b\n"
+    tput sgr0 # Reset Terminal Colors
+    tput setaf 2 # Green Text
+    if [ "${arch}" = "arm64" ]; then
+        printf "%b\n\n" "Suggested Download is"
+        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_arm64.deb"
+        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_arm64.deb"
+    elif [ "${arch}" = "amd64" ]; then
+        printf "%b\n\n" "Suggested Download is"
+        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_amd64.deb"
+        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_amd64.deb"
+    elif [ "${arch}" = "i386" ]; then
+        printf "%b\n\n" "Suggested Download is"
+        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_i386.deb"
+        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_i386.deb"
+    elif [ "${arch}" = "armhf" ]; then
+        printf "%b\n\n" "Suggested Download is"
+        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_armhf.deb"
+        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_armhf.deb"
+    else
+        printf "%b\n"
+    fi
+    tput setaf 3 # Yellow Text
+    printf "%b\n"
+
+    if [ -z "${targetDL}" ]
+    then
+        printf "%b\n" "Unknown"
+        printf "%b\n" "Cant Determine Your Architecture, Manual Download and Install "
+        printf "%b\n"
+        tput sgr0 # Reset Terminal Colors
+        printf "%b\n" "After Download install with"
+        tput setaf 6 # Cyan Text
+        cat <<"EOF"
+
+sudo dpkg -i netselect_0.3.ds1-28+b1_*.deb
+
+EOF
+        exit
+    else
+        read -r -n 1 -p "Would you like to attempt download and install now? [y/n] " response
+        tput sgr0 # Reset Terminal Colors
+        case "${response}" in
+            [yY])
+                if [ "${Downloader}" = curl ]; then
+                    $(curl -O "${targetDL}")
+                else
+                    "${Downloader}" "${targetDL}"
+                fi
+                sudo dpkg -i "$(basename "${targetDL}")"
+                exec $(readlink -f "$0")
+                ;;
+            *)
+
+                exit
+                ;;
+        esac
+    fi
+fi
+
+#----------------------------------------------------
+# Dependencies "curl"
+if curl -V >/dev/null 2>&1 ; then
+    tput cup 0 0
+    tput ed
+    printf "%b\n"
+
+else
+    clear
+    tput cup 15 0
+    tput ed
+    tput setaf 1
+    printf "%b\n" "curl is required but not found"
+    printf "%b\n"
+    tput sgr0
+    printf "%b\n" "Would you like to try to install it now?"
+    printf "%b\n"
+
+    read -r -n 1 -p "[y/N] " response
+    case "${response}" in
+        [yY])
+            sudo apt install curl && exec $(readlink -f "$0")
+            ;;
+        *)
+
+            exit
+            ;;
+    esac
+
+fi
+
+
+# Check for Internet Access with max retries of 3 then print message
+#clear
+tput cup 0 0 # Move cursor to line 15 column 0
+tput ed # Clear all text below cursor
+tput cup 5 0
+
+printf "%b\n" "Checking For Internet Access"; printf "%b\n" "Pinging Google.com"; tput blink; printf "%b\n" ".";tput cup 9 0;tput sgr0 # Reset Terminal Colors
+tput civis
+if ping -q -c 2 -W 1 google.com >/dev/null; then
+    printf "%b\n"
+    #clear
+else
+    n=0
+    until [ $n -gt 2 ]
+    do
+        ping -q -c 2 -W 1 google.com >/dev/null
+        if [ $? -eq 0 ]; then
+            break
+        fi
+        n=$(($n+1))
+
+    done
+
+    tput cup 0 0 # Move cursor to line 15 column 0
+    tput ed # Clear all text below cursor
+    tput cup 5 0
+    printf "%b\n" "Retried 3 Times"
+    printf "%b" "Network appears to be down. Unable to reach google.com for network connectivity test" "\n\n"
+    tput cnorm
+    exit
+fi
+
+# Main script starts here
+
+
+Banner() {
+    tput cup 0 0 # Move cursor to line 15 column 0
+    tput ed # Clear all text below cursor
+    tput setaf 2 # Green Text
+    cat <<"EOF"
+https://github.com/optio50/PIA-Server-Check
+
+    ____           _                   _
+   |  _ \   _ __  (_) __   __   __ _  | |_    ___
+   | |_) | | '__| | | \ \ / /  / _` | | __|  / _ \
+   |  __/  | |    | |  \ V /  | (_| | | |_  |  __/
+   |_|_    |_|    |_|   \_/    \__,_|  \__|  \___|   _
+   |_ _|  _ __   | |_    ___   _ __   _ __     ___  | |_
+    | |  | '_ \  | __|  / _ \ | '__| | '_ \   / _ \ | __|
+    | |  | | | | | |_  |  __/ | |    | | | | |  __/ | |_
+   |___| |_| |_|  \__|  \___| |_|    |_| |_|  \___|  \__|
+    / \      ___    ___    ___   ___   ___      ___    ___    _ __ ___
+   / _ \    / __|  / __|  / _ \ / __| / __|    / __|  / _ \  | '_ ` _ \
+  / ___ \  | (__  | (__  |  __/ \__ \ \__ \   | (__  | (_) | | | | | | |
+ /_/   \_\  \___|  \___|  \___| |___/ |___/ ✴  \___|  \___/  |_| |_| |_|
+
+
+EOF
+    tput sgr0 # Reset Terminal Colors
+    printf "%b\n"
+
+}
+#------------------------------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------------------------------
+# if dependency and network check is confirmed. Banner function runs then Main_Menu
+# Select Either Speed Test Or PIA Server Check
+Main_Menu() {
+    printf "%b\n"
+    tput cup 16 0 # Move cursor to line 15 column 0
+    tput ed # Clear all text below cursor
+    tput civis
+    # Begin Print Main Menu Selections
+    cat <<"EOF"
+
+Select Option
+
+1. Check For PIA's Fastest Server
+2. Speed Test Your Current Connection Speed
+3. PIA Links
+4. Whats My IP & Location
+5. Show PIA Server Location Names
+6. Exit / Quit
+
+EOF
+    # End Print Main Menu Selections
+
+    tput cup 26 0 # Move cursor to line 22 column 0
+    tput ed # Clear all text below cursor
+
+    read -r -n 1 option # Wait and read menu selection then continue with a single key press
+
+    case "${option}" in
+        1)
+            PIA_Menu
+            ;;
+        2)
+            Speed_Test
+            ;;
+        3)
+            tput el1
+            Links
+            ;;
+        4)
+            tput cup 16 0
+            tput el1
+            tput ed
+            printf "%b\n"
+            Location_Check
+            ;;
+        5)
+            Server_Names
+            ;;
+        6)
+            tput cup 25 0
+            tput ed
+            tput cnorm
+            tput rmcup
+            exit
+            ;;
+
+
+        *)
+            tput cup 16 0
+            tput ed
+            Main_Menu
+            ;;
+    esac
+
+}
+
+
+# Romans Chapter 10 Verse 9-10  https://www.biblegateway.com/passage/?search=Romans+10%3A9-10&version=NIV
+# 1 John Chapter 5 Verse 13     https://www.biblegateway.com/passage/?search=1+John+5%3A13&version=NIV
+Server_Check() {
+
+    tput cup 17 0 # Move cursor to line 15 column 0
+    tput ed # Delete text below cursor
+    #printf "%b\n" " "
+    #printf "%b" "Checking For PIA's Fastest Server...Please Wait." "\n\n"
+    # Checks ALL PIA Worldwide Servers
+    #------------------------------------------------------------------------------------------------------
+    if [ "${selection}" -eq 0 ]; then # Zero from PIA_Menu. All servers PIA has
+        tput setaf 3 # Yellow Text
+        printf "%b" "Checking All Servers Takes More Time....Be Patient" "\n" # warning that this worldwide server check takes longer
+        server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | uniq) # Gets ALL servers
+        serverCount=$(printf "%b\n" "${server}" | wc -l) # Counts the servers being selected
+        countries=$(printf "%b\n" "${server}" | cut -c 1-2 | uniq | wc -l) # Counts the countries PIA has servers in
+        tput setaf 2 # Green Text
+        printf "%b\n" "Checking "${serverCount}" Locations From "${countries}" Countries" # Prints the amount of worldwide servers and countries
+        tput sgr0 # Reset Terminal Colors
+    else
+        # Checks Selected PIA Servers
+        #------------------------------------------------------------------------------------------------------
+        server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep "${LOCATION}") # Only check selected country
+        serverCount=$(printf "%b\n" "${server}" | wc -l) # Count the servers in selected country
+        tput setaf 3 # Green Text
+        printf "%b\n" "Checking "${serverCount}" Locations in Selected Country" # Print the number of server locations in selected country
+        tput sgr0
+    fi
+
+    if [ "${selection}" -ne 0 ]; then
+        printf "%b\n" "${server}" # Prints the selected server locations
+    fi
+    # Sudo Check
+    #-----------------------------------------------------------------
+    tput setaf 1 # Red Text
+    sudo -nv 2> /dev/null
+    if [ "${?}" -ne 0 ] ; then
+        printf "%b" "Netselect Requires Root Access To Run" "\n\n"
+        tput sgr0 # Reset Terminal Colors
+        sudo netselect 2> /dev/null # this is a rudimentary fix to not display the progressbar while waiting for the sudo password on the real request
+    fi
+    #-----------------------------------------------------------------
+    #tput cup 0 15
+    tput setaf 2 # Green Text
+    printf "%b" "Checking For PIA's Fastest Server...Please Wait." "\n\n"
+    tput sgr0 # Reset Terminal Colors
+    printf "%b\n" "${server}" | xargs sudo netselect -s 1 > file1 & SPIN_PID=$! # Pipes each of the servers into Netselect and selects fastest
+    PBint=2 # Progressbar Speed
+    spin
+    wait
+    disown $SPIN_PID
+    kill -9 $SPIN_PID
+    tput sgr0 # Reset Terminal Colors
+    tput cup 17 0 # Move cursor to line 15 column 0
+    tput ed # Delete text below cursor
+    fhostname=$(awk '{print $2}' file1) # Save fastest hostname
+    printf "%b" "Fastest Hostname ";tput setaf 1; printf "%b" "${fhostname}" "\n"
+    printf "%b\n"
+    host "${fhostname}" > file2 # Pipe fastest hostname into the command 'host' to find all IP's for hostname'
+    IPs=$(awk '{print $4}' file2) # Save IP addresses
+    cAddresses=$(wc -l file2 | awk '{print $1}') # Count IP addresses
+    tput sgr0
+    printf "%b" "${fhostname}";tput setaf 3;printf "%b" " Has "${cAddresses}" Servers For That Hostname" "\n\n" # Print the number of IP addresses
+    tput sgr0 # Reset Terminal Colors
+    printf "%b\n" "${IPs}" # Print IP addresses
+    printf "%b\n"
+    printf "%b" "Checking For The Fastest IP Address To";tput setaf 2; printf "%b" " "${fhostname}" " "\n\n"
+    tput setaf 2 # Green Text
+    printf "%b\n" "${IPs}" | xargs sudo netselect -s 1 > file3 & SPIN_PID=$! # Pipe the saved IP's in Netselect and select fastest IP
+    PBint=1 # Progressbar Speed
+    spin
+    wait
+    FinalIP=$(awk '{print $2}' file3)
+    disown $SPIN_PID
+    kill -9 $SPIN_PID
+    tput cup 18 0 # Move cursor to line 20 column 0
+    tput ed # Delete text below cursor
+    ping -c 10 "${FinalIP}" > file4 & SPIN_PID=$! # Save the average ping time of the fastest IP
+    printf "%b\n" "Measuring Response Time For The Fastest IP Address"
+    PBint=.5 # Progressbar Speed
+    spin
+    wait
+    disown $SPIN_PID
+    kill -9 $SPIN_PID
+    resptime=$(tail -1 file4 | awk -F '/' '{print $5 "ms"}')
+    tput cup 18 0 # Move cursor to line 20 column 0
+    tput ed # Delete text below cursor
+    printf "%b\n"
+    tput setaf 3 # Yellow Text
+    printf "%b\n\n" "${FinalIP}" "Is The Fastest IP Address and Has an Avg Response Time Of "${resptime}"" # Print fastest IP and average ping time
+    tput sgr0
+
+    rm file1 file2 file3 file4 2> /dev/null # remove the temporary files
+    cat <<"EOF"
+
+Select Option
+
+1. Back To Main Menu
+
+Or
+
+Any Key To Exit / Quit
+
+EOF
+
+    read -r -n 1  continue
+    case "${continue}" in
+        1)
+            Main_Menu
+            ;;
+        *)
+            tput ech 1
+            printf "%b\n"
+            tput cnorm
+            exit
+            ;;
+    esac
+}
+
+Links(){
+    tput setaf 2 # Green Text
+    tput cup 16 0 # Move cursor to line 15 column 0
+    tput ed # Clear all text below cursor
+    cat <<"EOF"
+
+https://www.privateinternetaccess.com/				PIA Homepage
+https://www.privateinternetaccess.com/blog/			PIA News
+https://www.privateinternetaccess.com/pages/network/		Server Locations
+https://www.privateinternetaccess.com/pages/download		Download PIA Client
+https://www.privateinternetaccess.com/helpdesk/			Support / Help
+https://www.privateinternetaccess.com/pages/how-it-works/	How VPN Packages Work
+
+
+
+https://www.facebook.com/privateinternetaccess			FACEBOOK
+https://twitter.com/buyvpnservice				TWITTER
+https://www.reddit.com/r/PrivateInternetAccess/			REDDIT
+https://www.youtube.com/user/vpnservice/videos			YOUTUBE
+
+EOF
+    tput sgr0 # Reset Terminal Colors
+    #tput civis
+    read -r -n 1 -p " Press Any Key To Continue " continue
+    Main_Menu
+}
+
+PIA_Menu() {
+    tput cup 24 0 # Move cursor to line 22 column 0
+    tput ed # Delete text below cursor
+    printf "%b\n"
+    printf "%b\n" "Checking For VPN Connection"
+    ValuePIA=$(curl -m 10 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected") #Check if already connected PIA
+
+    if (( "${ValuePIA}" > 0 ))
+    then
+        tput cup 17 0 # Move cursor to line 15 column 0
+        tput ed # Delete text below cursor
+        tput setaf 3 # Yellow Text
+        # Warning about slower ping times while being connected to PIA
+        printf "%b" "You are currently connected to PIA's VPN service.
+More realistic results can be achived if you are not connected
+to PIA for the \"Fastest Server Check\""
+tput sgr0 # reset terminal colors
+else
+tput cup 17 0 # Move cursor to line 15 column 0
+tput ed # Delete text below cursor
+fi
+
+
+# Print PIA country select
+printf "%b\n"
+cat <<"EOF"
+
+Select Country
+
+1. USA
+2. UK
+3. Canada
+4. Australia
+5. New Zealand
+6. Germany
+7. Hong Kong
+8. Japan
+9. Israel
+0. ALL SERVERS PIA OFFERS
+
+Any Other Key To Main Menu
+
+EOF
+# read country selection and wait for a single key press
+read -r -n 1 selection
+case "${selection}" in
+
+	0)
+	LOCATION=""
+	;;
+	1)
+	LOCATION="us-";;
+	2)
+	LOCATION="uk-";;
+	3)
+	LOCATION="ca-";;
+	4)
+	LOCATION="au-";;
+	5)
+	LOCATION="nz.";;
+	6)
+	LOCATION="de-";;
+	7)
+	LOCATION="hk.";;
+	8)
+	LOCATION="japan.";;
+	9)
+	LOCATION="israel";;
+	*)
+	#clear
+	#Banner
+	Main_Menu
+	tput cup 16 0
+	tput ed
+	;;
+	esac
+	Server_Check
+}
+
+Server_Names() {
+# Print PIA country select
+tput cup 16 0
+tput ed
+printf "%b\n"
+cat <<"EOF"
+
+Select Country
+
+1. USA
+2. UK
+3. Canada
+4. Australia
+5. New Zealand
+6. Germany
+7. Hong Kong
+8. Japan
+9. Israel
+0. ALL SERVERS PIA OFFERS
+
+Any Other Key To Main Menu
+
+EOF
+# read country selection and wait for a single key press
+read -r -n 1 selection
+case "${selection}" in
+
+	0)
+	LOCATION=""
+	ActBanner=Yes
+	;;
+	1)
+	LOCATION="us-";;
+	2)
+	LOCATION="uk-";;
+	3)
+	LOCATION="ca-";;
+	4)
+	LOCATION="au-";;
+	5)
+	LOCATION="nz.";;
+	6)
+	LOCATION="de-";;
+	7)
+	LOCATION="hk.";;
+	8)
+	LOCATION="japan.";;
+	9)
+	LOCATION="israel";;
+	*)
+	#clear
+	#Banner
+	Main_Menu
+	tput cup 16 0
+	tput ed
+	;;
+	esac
+	List_Names
+}
+
+List_Names() {
+tput cup 16 0
+tput ed
+if [ "${selection}" -eq 0 ]; then # Zero from PIA_Menu. All servers PIA has
+tput setaf 3 # Yellow Text
+server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | uniq) # Gets ALL servers
+serverCount=$(printf "%b\n" "${server}" | wc -l) # Counts the servers being selected
+countries=$(printf "%b\n" "${server}" | cut -c 1-2 | uniq | wc -l) # Counts the countries PIA has servers in
+tput setaf 2 # Green Text
+printf "%b\n" "Listing "${serverCount}" Locations From "${countries}" Countries" # Prints the amount of worldwide servers and countries
+tput sgr0 # Reset Terminal Colors
+else
+# Checks Selected PIA Servers
+#------------------------------------------------------------------------------------------------------
+server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep "${LOCATION}") # Only check selected country
+serverCount=$(printf "%b\n" "${server}" | wc -l) # Count the servers in selected country
+tput setaf 3 # Green Text
+printf "%b\n" "Listing "${serverCount}" Locations in Selected Country" # Print the number of server locations in selected country
+tput sgr0
+fi
+
+#if [ "${selection}" -ne 0 ]; then
+printf "%b\n\n" "${server}" # Prints the selected server locations
+#fi
+read -r -n 1 -p " Press Any Key To Continue " continue
+if [ "${ActBanner}" = Yes ]; then
+Banner
+fi
+	Main_Menu
+
+}
+
+Speed_Test() {
+if command -v bc >/dev/null 2>&1 ; then
+tput cup 16 0
+tput ed
+printf "%b\n"
+
+else
+
+tput cup 16 0
+tput ed
+tput setaf 1
+printf "%b\n" "bc is required for Speed Testing but not found"
+printf "%b\n"
+tput sgr0
+printf "%b\n" "Would you like to try to install it now?"
+printf "%b\n"
+
+read -r -n 1 -p "[y/N] " response
+case "${response}" in
+    [yY])
+        sudo apt install bc
+        exec $(readlink -f "$0")
+		;;
+    *)
+
+		exec $(readlink -f "$0")
+        ;;
+esac
+
+fi
+PIAconnect=$(curl -m 5 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected")
+                if (( "${PIAconnect}" > 0 )) ; then
+                printf "%b\n" "${CHECKMARK}$(tput setaf 2) This Speed Test is with PIA VPN Active"
+                else
+                printf "%b\n" "${XMARK}$(tput setaf 1) This Speed Test is with PIA VPN Inactive"
+                fi
+                tput sgr0 # Reset Terminal Colors
+cat <<"EOF"
+
+Select Download Size
+
+1. 10  MB
+2. 20  MB
+3. 50  MB
+4. 100 MB
+5. 200 MB
+6. 500 MB
+7. Main Menu
+
+EOF
+
+	read -r -n 1 size
+case "${size}" in
+	1)
+	FileSize="10"
+	;;
+	2)
+	FileSize="20"
+	;;
+	3)
+	FileSize="50"
+	;;
+	4)
+	FileSize="100"
+	;;
+	5)
+	FileSize="200"
+	;;
+	6)
+	FileSize="500"
+	;;
+	*)
+	Main_Menu
+	;;
+	esac
+tput cup 17 0
+tput ed
+printf "%b" "Download "${FileSize}"MB File From?" "\n"
+
+	cat <<"EOF"
+
+1. USA
+2. UK
+3. Germany
+4. Netherlands
+5. Canada
+6. Singapore
+7. Italy
+8. Japan
+9. Australia
+0. Auto Select Fastest Location
+EOF
+
+printf "%b\n\n"
+
+	read -r -n 1 location
+	case "${location}" in
+	1)
+	URL="http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin"
+	LOC="USA"
+	;;
+	2)
+	URL="http://ipv4.download.thinkbroadband.com/512MB.zip"
+	LOC="United Kingdom"
+	;;
+	3)
+	URL="https://speed.hetzner.de/1GB.bin"
+	LOC="Germany"
+	;;
+	4)
+	URL="https://iperf.worldstream.nl/1000mb.bin"
+	LOC="Netherlands"
+	;;
+	5)
+	URL="http://ca-mr2-smart.serverlocation.co:82/1Gio.dat"
+	LOC="Canada"
+	;;
+	6)
+	URL="http://sg-smart.serverlocation.co:82/1Gio.dat"
+	LOC="Singapore"
+	;;
+	7)
+	URL="http://it-ml-smart.serverlocation.co:82/1Gio.dat"
+	LOC="Italy"
+	;;
+	8)
+	URL="http://jp-tk-smart.serverlocation.co:82/1Gio.dat"
+	LOC="Japan"
+	;;
+	9)
+	URL="http://au-sy.serverlocation.co:82/1Gio.dat"
+	LOC="Australia"
+	;;
+	0)
+	Autoselect
+	URL=${BestDL}
+	;;
+	*)
+	Main_Menu
+	;;
+	esac
+#tput cup 41 0
+tput cup 17 0
+tput ed
+tput sgr0
+printf "%s\n" "Downloading "${FileSize}"MB's From ${LOC} "
+#tput cup 43 0
+tput cup 19 0
+tput ed
+printf "%b\n" $(dirname "${URL}")
+tput setaf 3
+DLspeed=$(printf "%b" "scale=2; " && curl --progress-bar --connect-timeout 10 -o /dev/null -r 0-"${FileSize}"000000 "${URL}" -w "%{speed_download}"  | sed "s/\,/\./g" && echo "/1048576");
+tput setaf 5
+printf "%b\n" "${DLspeed}" | bc -q | sed "s/$/ MB\/sec/;s/^/\tDownload Speed\: /";
+tput sgr0
+printf "%b\n"
+
+	read -r -n 1 -p " Press Any Key To Continue " continue
+	Main_Menu
+}
+
+# Auto select the fastest speed test file download site
+Autoselect() {
+tput cup 17 0
+tput ed
+printf "%b\n" "Auto Selecting Fastest Location....Please wait"
+	declare -a arr=(
+http://ipv4.download.thinkbroadband.com/512MB.zip
+https://speed.hetzner.de/1GB.bin
+http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin
+https://iperf.worldstream.nl/1000mb.bin
+http://ca-mr2-smart.serverlocation.co:82/1Gio.dat
+http://sg-smart.serverlocation.co:82/1Gio.dat
+http://it-ml-smart.serverlocation.co:82/1Gio.dat
+http://jp-tk-smart.serverlocation.co:82/1Gio.dat
+http://au-sy.serverlocation.co:82/1Gio.dat
+)
+# Sudo Check
+#-----------------------------------------------------------------
+tput setaf 1 # Red Text
+sudo -nv 2> /dev/null
+if [ "${?}" -ne 0 ] ; then
+printf "%b" "Netselect Requires Root Access To Run" "\n\n"
+tput sgr0 # Reset Terminal Colors
+sudo netselect 2> /dev/null # this is a rudimentary fix to not display the progressbar while waiting for the sudo password on the real request
+fi
+#-----------------------------------------------------------------
+sudo netselect "${arr[@]}" | awk '{print $2}' > file5 & SPIN_PID=$!
+PBint=1
+spin
+wait
+disown $SPIN_PID
+kill -9 $SPIN_PID
+BestDL=$(cat file5)
+rm file5 2> /dev/null
+if [ "${BestDL}" = http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin ]; then
+LOC=USA
+elif
+[ "${BestDL}" = http://ipv4.download.thinkbroadband.com/512MB.zip ]; then
+LOC="United Kingdom"
+elif
+[ "${BestDL}" = https://speed.hetzner.de/1GB.bin ]; then
+LOC="Germany"
+elif
+[ "${BestDL}" = https://iperf.worldstream.nl/1000mb.bin ]; then
+LOC="Netherlands"
+elif
+[ "${BestDL}" = http://ca-mr2-smart.serverlocation.co:82/1Gio.dat ]; then
+LOC="Canada"
+elif
+[ "${BestDL}" = http://sg-smart.serverlocation.co:82/1Gio.dat ]; then
+LOC="Singapore"
+elif
+[ "${BestDL}" = http://it-ml-smart.serverlocation.co:82/1Gio.dat ]; then
+LOC="Italy"
+elif
+[ "${BestDL}" = http://jp-tk-smart.serverlocation.co:82/1Gio.dat ]; then
+LOC="Japan"
+elif
+[ "${BestDL}" = http://au-sy.serverlocation.co:82/1Gio.dat ]; then
+LOC="Australia"
+else
+tput setaf 1 # Red Text
+printf "%b\n\n" "Unable to determine the fastest location. Manual Selection Required"
+tput sgr0
+rm file5 2> /dev/null
+read -r -n 1 -p " Press Any Key To Continue " continue
+Speed_Test
+fi
+}
+
+Location_Check(){
+	printf "%b\n\n" "Checking IP & Location Information"
+            PIAconnect=$(curl -m 10 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected")
+            if (( "${PIAconnect}" > 0 )) ; then
+                tput setaf 2 # Green Text
+                printf "%b\n" "✔  You are Protected With PIA  ✔"
+            else
+                tput setaf 1 # Red Text
+                printf "%b\n" "❌  You are NOT Protected With PIA  ❌"
+            fi
+            tput sgr0 # Reset Terminal Colors
+            curl -s "http://ipinfo.io/" | awk -F\" '{print $2":",$4}' | grep -v phone | sed 's/[",]//g' | sed '1d;$d' | sed -e "s/\b\(.\)/\u\1/g" | column -s: -t
+            MYIP=$(curl -s -4 https://icanhazip.com)
+            if [[ "${MYIP}" =~ ^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
+                MYIP="${MYIP}"
+            fi
+
+            if [[ "${MYIP}" =~ ^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
+                MYIP="${MYIP}"
+            else
+                MYIP=$(curl -s ifconfig.me)
+            fi
+
+            if [[ "${MYIP}" =~ ^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
+                MYIP="${MYIP}"
+            else
+                MYIP=$(curl -s https://ipinfo.io/ip)
+            fi
+
+            if [[ "${MYIP}" =~ ^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
+                MYIP="${MYIP}"
+            else
+                printf "%b\n" "Unable to print Location Map URL"
+                #printf "%b\n" "${MYIP}"
+                read -r -n 1 -p " Press Any Key To Continue " continue
+            fi
+            #MYIP=$(curl -s "http://ipinfo.io/" | awk -F\" '{print $4}' | head -n2 | tail -n1)
+            MAP=$(curl -m 5 -s http://ping.pe/"${MYIP}" | grep -E "https:\/\/www\.google\.com\/maps\/place\/" | sed 's/.*href=\(.*\)>MAP<\/a><\/b><br><br>/\1/' | tr -d \'\")
+			if [ -z "${MAP}" ]; then
+			MAP="Unable to get Map URL, Server Overload. Try again Later."
+			fi
+            printf "%b\n"
+            printf "%b\n" "Loc Map   ${MAP}"
+            printf "%b\n\n"
+            read -r -n 1 -p " Press Any Key To Continue " continue
+            Main_Menu
+}
+
+
+ctrl_c() {
+	#	tput el1
+    #    printf "%b\n\n" "CTRL-C Detected...Exiting"
+	disown $SPIN_PID 2> /dev/null
+	kill -9 $SPIN_PID 2> /dev/null
+	rm file1 file2 file3 file4 file5 2> /dev/null
+	tput cnorm
+	tput rmcup
+	exit
+}
+trap ctrl_c SIGINT
+#trap ctrl_c SIGTERM
+Banner
+Main_Menu
