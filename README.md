@@ -63,7 +63,7 @@ Checking For The Fastest IP Address To us-siliconvalley.privateinternetaccess.co
 
 199.116.118.251 25.976ms
 
-Fast-DL-PIA is a modifided version that includes Download speed testing
+Main Script File Is PIA
 
 To use this script make the file executable by typing
 chmod +x PIA
