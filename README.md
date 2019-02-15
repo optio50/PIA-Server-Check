@@ -66,10 +66,10 @@ Checking For The Fastest IP Address To us-siliconvalley.privateinternetaccess.co
 Fast-DL-PIA is a modifided version that includes Download speed testing
 
 To use this script make the file executable by typing
-chmod +x Fast-DL-PIA
+chmod +x PIA
 
 Then run it from the downloaded directory by typing
-./Fast-DL-PIA
+./PIA
 
 
 
