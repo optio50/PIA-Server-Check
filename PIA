@@ -10,7 +10,7 @@ tput smcup
 #wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep us- | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
 CHECKMARK="$(tput sgr0)[$(tput setaf 2)✔$(tput sgr0)]"
 XMARK="$(tput sgr0)[$(tput setaf 1)X$(tput sgr0)]"
-# tput is used to move the cursor and change colors
+# tput is used to move the cursor and change color
 # This script is only verified with Ubuntu and distros based on Ubuntu
 # sudo and apt are used to offer user to install an unmet dependancy that is package installable
 # Outside of package manager Dependency requires manual install
