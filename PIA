@@ -10,7 +10,7 @@ tput smcup
 #wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep us- | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
 CHECKMARK="$(tput sgr0)[$(tput setaf 2)✔$(tput sgr0)]"
 XMARK="$(tput sgr0)[$(tput setaf 1)X$(tput sgr0)]"
-# tput is used to move the cursor and change color
+# tput is used to move the cursor and change colors
 # This script is only verified with Ubuntu and distros based on Ubuntu
 # sudo and apt are used to offer user to install an unmet dependancy that is package installable
 # Outside of package manager Dependency requires manual install
@@ -243,7 +243,8 @@ Select Option
 3. PIA Links
 4. Whats My IP & Location
 5. Show PIA Server Location Names
-6. Exit / Quit
+6. DNS Leak Test (Hackish / Experimental)
+7. Exit / Quit
 
 EOF
     # End Print Main Menu Selections
@@ -275,14 +276,15 @@ EOF
             Server_Names
             ;;
         6)
+			LeakTest
+			;;
+		7)
             tput cup 25 0
             tput ed
             tput cnorm
             tput rmcup
             exit
             ;;
-
-
         *)
             tput cup 16 0
             tput ed
@@ -599,9 +601,12 @@ printf "%b\n" "Listing "${serverCount}" Locations in Selected Country" # Print t
 tput sgr0
 fi
 
-#if [ "${selection}" -ne 0 ]; then
-printf "%b\n\n" "${server}" # Prints the selected server locations
-#fi
+if [ "${selection}" -eq 0 ]; then
+printf "%b\n\n" "${server}" | pr -ts"               " --columns 2 | column -t #  Prints the selected server locations
+else
+printf "%b\n\n" "${server}" #  Prints the selected server locations
+fi
+printf "%b\n\n"
 read -r -n 1 -p " Press Any Key To Continue " continue
 if [ "${ActBanner}" = Yes ]; then
 Banner
@@ -889,13 +894,57 @@ Location_Check(){
             Main_Menu
 }
 
+LeakTest(){
+	tput cup 16 0
+    tput el1
+    tput ed
+    printf "%b\n"
+	for run in {1..5}
+	do
+printf "%b\n" "Scanning For DNS Leaks."
+tput cup 16 0
+tput el
+tput el1
+tput ed
+ping -W1 -c1 whoami.akamai.net | awk ' /from/{print $4}' | sed 's/[)(]//g' | sed 's/://' >> DNS.txt &
+tput cup 16 0
+tput el
+tput el1
+tput ed
+printf "%b\n" "Scanning For DNS Leaks."
+ping -W1 -c1 whoami.ultradns.net | awk ' /from/{print $4}' | sed 's/[)(]//g' | sed 's/://' >> DNS.txt &
+tput cup 16 0
+tput el
+tput el1
+tput ed
+printf "%b\n" "Scanning For DNS Leaks."
+wait
+done
+sort < DNS.txt | uniq > uniDNS.txt && mv uniDNS.txt DNS.txt
+while read IP; do
+printf "${IP} " >> DNS2.txt; printf "%b" $(whois "${IP}" | awk '/NetName/ {print $2;exit}') "\n" >> DNS2.txt
+done < DNS.txt
+tput cup 16 0
+tput el
+tput el1
+tput ed
+tput setaf 3
+printf "%b\n" "If you see your ISP IP address you have a leak.
+Your DNS is coming from the following Location's" "\n"
+tput sgr0
+grep -v 'fgets' DNS2.txt | column -t
+rm uniDNS.txt DNS2.txt DNS.txt 2> /dev/null
+printf "%b\n\n"
+            read -r -n 1 -p " Press Any Key To Continue " continue
+            Main_Menu
+}
 
 ctrl_c() {
 	#	tput el1
     #    printf "%b\n\n" "CTRL-C Detected...Exiting"
 	disown $SPIN_PID 2> /dev/null
 	kill -9 $SPIN_PID 2> /dev/null
-	rm file1 file2 file3 file4 file5 2> /dev/null
+	rm file1 file2 file3 file4 file5 uniDNS.txt DNS2.txt DNS.txt 2> /dev/null
 	tput cnorm
 	tput rmcup
 	exit
