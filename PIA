@@ -1,5 +1,4 @@
 #!/bin/bash
-tput smcup
 #World Wide Servers by ip
 #wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
 #
@@ -8,13 +7,17 @@ tput smcup
 #
 # U.S Servers by ip
 #wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep us- | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
-CHECKMARK="$(tput sgr0)[$(tput setaf 2)✔$(tput sgr0)]"
-XMARK="$(tput sgr0)[$(tput setaf 1)X$(tput sgr0)]"
+#
 # tput is used to move the cursor and change colors
 # This script is only verified with Ubuntu and distros based on Ubuntu
 # sudo and apt are used to offer user to install an unmet dependancy that is package installable
 # Outside of package manager Dependency requires manual install
+#curl -s 'https://api.ipify.org'
 #----------------------------------------------------------------------------------------------------
+tput smcup
+CHECKMARK="$(tput sgr0)[$(tput setaf 2)✔$(tput sgr0)]"
+XMARK="$(tput sgr0)[$(tput setaf 1)X$(tput sgr0)]"
+
 if command -v resize >/dev/null 2>&1 ; then
     resize -s 50 90
 
@@ -102,7 +105,7 @@ elif
         tput sgr0 # Reset Terminal Colors
         printf "%b\n" "After Download install with"
         tput setaf 6 # Cyan Text
-        cat <<"EOF"
+cat <<"EOF"
 
 sudo dpkg -i netselect_0.3.ds1-28+b1_*.deb
 
@@ -227,7 +230,7 @@ EOF
 
 #------------------------------------------------------------------------------------------------------
 # if dependency and network check is confirmed. Banner function runs then Main_Menu
-# Select Either Speed Test Or PIA Server Check
+
 Main_Menu() {
     printf "%b\n"
     tput cup 16 0 # Move cursor to line 15 column 0
@@ -262,14 +265,10 @@ EOF
             Speed_Test
             ;;
         3)
-            tput el1
+            
             Links
             ;;
         4)
-            tput cup 16 0
-            tput el1
-            tput ed
-            printf "%b\n"
             Location_Check
             ;;
         5)
@@ -415,6 +414,7 @@ EOF
 }
 
 Links(){
+	tput el1
     tput setaf 2 # Green Text
     tput cup 16 0 # Move cursor to line 15 column 0
     tput ed # Clear all text below cursor
@@ -847,16 +847,27 @@ fi
 }
 
 Location_Check(){
-	printf "%b\n\n" "Checking IP & Location Information"
-            PIAconnect=$(curl -m 10 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected")
+	tput cup 16 0
+    tput el1
+    tput ed
+    printf "%b\n"
+	printf "%b\n" "Checking IP & Location Information"
+            PIAconnect=$(curl -m 5 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected")
             if (( "${PIAconnect}" > 0 )) ; then
                 tput setaf 2 # Green Text
                 printf "%b\n" "✔  You are Protected With PIA  ✔"
             else
+				PIAconnect=$(curl -m 5 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected")
+				if (( "${PIAconnect}" > 0 )) ; then
+                tput setaf 2 # Green Text
+                printf "%b\n" "✔  You are Protected With PIA  ✔"
+                else
                 tput setaf 1 # Red Text
                 printf "%b\n" "❌  You are NOT Protected With PIA  ❌"
             fi
+            fi
             tput sgr0 # Reset Terminal Colors
+			
             curl -s "http://ipinfo.io/" | awk -F\" '{print $2":",$4}' | grep -v phone | sed 's/[",]//g' | sed '1d;$d' | sed -e "s/\b\(.\)/\u\1/g" | column -s: -t
             MYIP=$(curl -s -4 https://icanhazip.com)
             if [[ "${MYIP}" =~ ^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
@@ -877,19 +888,41 @@ Location_Check(){
 
             if [[ "${MYIP}" =~ ^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
                 MYIP="${MYIP}"
-            else
-                printf "%b\n" "Unable to print Location Map URL"
-                #printf "%b\n" "${MYIP}"
-                read -r -n 1 -p " Press Any Key To Continue " continue
+            #else
+            #    printf "%b\n" "Unable to print Location Map URL"
+            #    #printf "%b\n" "${MYIP}"
+            #    read -r -n 1 -p " Press Any Key To Continue " continue
             fi
+			#curl -s http://ip-api.com/#"${MYIP}" | sed 's/[",{}]//g'
             #MYIP=$(curl -s "http://ipinfo.io/" | awk -F\" '{print $4}' | head -n2 | tail -n1)
-            MAP=$(curl -m 5 -s http://ping.pe/"${MYIP}" | grep -E "https:\/\/www\.google\.com\/maps\/place\/" | sed 's/.*href=\(.*\)>MAP<\/a><\/b><br><br>/\1/' | tr -d \'\")
-			if [ -z "${MAP}" ]; then
-			MAP="Unable to get Map URL, Server Overload. Try again Later."
+			#LATLON=$(curl -s https://ipapi.co/ | grep 'Latitude / Longitude' | sed 's/.*\-text="//;s/">.*//' | tr -d ' ')
+			LATLON=$(curl -s https://ipapi.co/latlong/)
+            #MAP1=$(curl -m 5 -s http://ping.pe/"${MYIP}" | grep -E "https:\/\/www\.google\.com\/maps\/place\/" | sed 's/.*href=\(.*\)>MAP<\/a><\/b><br><br>/\1/' | tr -d \'\")
+			#MAP2='http://www.whatsmyip.org/ip-geo-location/?ip='${MYIP}
+			#MAP3='https://www.geolocation.com/?ip='${MYIP}''
+			MAP4='www.google.com/maps/@'${LATLON}',10z'
+			if [ -z "${MAP4}" ]; then
+			MAP4="Unable to get Map URL, Server Overload. Try again Later."
+			#if [ -z "${MAP2}" ]; then
+			#MAP2="Unable to get Map URL, Server Overload. Try again Later."
+			#fi
 			fi
             printf "%b\n"
-            printf "%b\n" "Loc Map   ${MAP}"
+            #printf "%b\n" "Loc Map   ""${MAP1}"
+			#printf "%b\n" "Loc Map   ""${MAP2}"
+			#printf "%b\n" "Loc Map   ""${MAP3}"
+			printf "%b" "Loc Map   ";tput setaf 2; printf ${MAP4} 
             printf "%b\n\n"
+			tput setaf 3
+			printf "%b\n" "Is the Server Realy where you think it is?
+
+Open the link below and wait for the lowest ping times.
+If your server is near that location you can be reasonably
+sure its not a \"Virtual Server\" but real hardware in that area.
+"
+			tput setaf 2
+			printf "%b" "http://ping.pe/${MYIP}" "\n\n\n"
+			tput sgr0
             read -r -n 1 -p " Press Any Key To Continue " continue
             Main_Menu
 }
@@ -935,8 +968,16 @@ tput sgr0
 grep -v 'fgets' DNS2.txt | column -t
 rm uniDNS.txt DNS2.txt DNS.txt 2> /dev/null
 printf "%b\n\n"
-            read -r -n 1 -p " Press Any Key To Continue " continue
-            Main_Menu
+            read -r -n 1 -p " Select 1 for Retest or any other Key for Main Menu " selection
+            case "${selection}" in
+		1)
+		LeakTest
+		;;
+
+		*)
+		Main_Menu
+		;;
+		esac
 }
 
 ctrl_c() {
