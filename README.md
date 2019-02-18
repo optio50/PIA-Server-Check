@@ -12,6 +12,12 @@ PIA Protection Check
 
 Download Speed Test with Auto Select Fastest Server
 
+DNS Leak Test (Hackish / Experimental)
+
+Show PIA Server Names
+
+Check to make sure you are not connected to a "Virtual VPN Server" instead of real hardware in the selected city.
+
 ==========================================================================
 
 Netselect is required.
