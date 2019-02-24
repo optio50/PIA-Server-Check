@@ -14,6 +14,10 @@
 # Outside of package manager Dependency requires manual install
 #curl -s 'https://api.ipify.org'
 #
+#
+#  json output for geolocation
+# curl -s https://ipapi.co/${MYIP}/json/ | jq -r '"IP : " + .ip, "City: " + .city, "State: " + .region, "Country: " + .country_name, "Location: " + "\(.latitude)\(.longitude)"' | column -s: -t
+#
 #  curl_or_wget=$(if hash curl 2>/dev/null; then echo curl; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi)
 # if [ -z "$curl_or_wget" ]; then
 #    echo "Neither curl nor wget found. Cannot use http method." >&2
@@ -21,29 +25,19 @@
 #fi
 #----------------------------------------------------------------------------------------------------
 #tput smcup
-tput sc
+#tput sc
 CHECKMARK="$(tput sgr0)[$(tput setaf 2)✔$(tput sgr0)]"
 XMARK="$(tput sgr0)[$(tput setaf 1)X$(tput sgr0)]"
 
 if command -v resize >/dev/null 2>&1 ; then
-    resize -s 50 90
-
+    resize -s 50 105
+	clear
+	tput cup 0 0
 else
-    printf '\e[8;50;90t'
+    printf '\e[8;50;105t'
+    clear
+    tput rc
 fi
-
-spin()
-{
-
-    printf "["
-    tput setaf 2
-    while kill -0 "$SPIN_PID" 2> /dev/null; do
-        printf  "✴ "
-        sleep "${PBint}"
-    done
-    tput sgr0
-    printf "]"
-}
 
 tput sgr0 # Reset Terminal Colors
 if command -v netselect >/dev/null 2>&1 ; then
@@ -140,35 +134,78 @@ EOF
 fi
 
 #----------------------------------------------------
-# Dependencies "curl"
-if curl -V >/dev/null 2>&1 ; then
-    tput cup 0 0
-    tput ed
+# Dependencies Check
+CheckScriptDependencies ()
+{
+
+declare -a ARRAY
+ARRAY=()
+
+	Packages=( "$@" )
+	Package=
+	printf "%b\n"
+	for Package in ${Packages[@]}; do
+		hash $Package 2> /dev/null
+		if (( $? > 0 )); then
+			
+			printf "%b" "${XMARK}  ${Package}  Not Found But Required" "\n"
+			ARRAY=(${ARRAY[@]} ${Package})
+		fi
+				
+	done
+	
+				
+	#ToInstall=$(printf "%s " ${ARRAY[@]})
+	if [[ -z "${ARRAY[@]}" ]]; then
+			Connection_Check
+			
+	fi
+
+if dig -V >/dev/null 2>&1 ; then
+		printf " "
+		else
+		ARRAY=( ${ARRAY[@]/dig} )
+		ARRAY=(${ARRAY[@]} dnsutils)
+		#ToInstall=$(printf "%s " ${ARRAY[@]})	
+	printf "%b\n"
+	printf "%b\n" "Missing Dependencies" "\n"
+	printf "%b\n" ${ARRAY[@]}
+	    printf "%b\n" "Would you like to try to install them now?"
     printf "%b\n"
 
-else
-    clear
-    tput cup 15 0
-    tput ed
-    tput setaf 1
-    printf "%b\n" "curl is required but not found"
-    printf "%b\n"
-    tput sgr0
-    printf "%b\n" "Would you like to try to install it now?"
-    printf "%b\n"
-
-    read -r -n 1 -p "[y/N] " response
+    read -r -n 1 -p "[Y/n] " response
     case "${response}" in
-        [yY])
-            sudo apt install curl && exec $(readlink -f "$0")
+    
+        [nN])
+			printf "\n"
+            exit
             ;;
         *)
 
-            exit
+            sudo apt install ${ARRAY[@]} && exec $(readlink -f "$0")
             ;;
     esac
 
-fi
+			
+			fi
+	
+}
+
+#ProgressBar
+spin()
+{
+
+    printf "["
+    tput setaf 2
+    while kill -0 "$SPIN_PID" 2> /dev/null; do
+        printf  "✴ "
+        sleep "${PBint}"
+    done
+    tput sgr0
+    printf "]"
+
+}
+
 
 
 # Check for Internet Access with max retries of 3 then print message
@@ -177,11 +214,12 @@ fi
 #tput ed # Clear all text below cursor
 #tput cup 5 0
 
+Connection_Check() {
 printf "%b\n" "Checking For Internet Access"; printf "%b\n" "Pinging Google.com"; tput blink; printf "%b\n" ".";tput cup 0 0;tput sgr0 # Reset Terminal Colors
 tput civis
 if ping -q -c 2 -W 1 google.com >/dev/null; then
-    printf "%b\n"
-    #clear
+    Banner
+    Main_Menu
 else
     n=0
     until [ $n -gt 2 ]
@@ -202,14 +240,14 @@ else
     tput cnorm
     exit
 fi
-
+}
 # Main script starts here
 
 
 Banner() {
-	tput rc
-	tput cup 0 0 # Move cursor to line 15 column 0
-	tput ed # Clear all text below cursor
+	#tput rc
+	#tput cup 0 0 # Move cursor to line 15 column 0
+	#tput ed # Clear all text below cursor
 	tput setaf 2 # Green Text
 	cat <<"EOF"
 https://github.com/optio50/PIA-Server-Check
@@ -240,8 +278,9 @@ EOF
 # if dependency and network check is confirmed. Banner function runs then Main_Menu
 
 Main_Menu() {
+	#Banner
     printf "%b\n"
-    tput cup 16 0 # Move cursor to line 15 column 0
+    tput cup 16 0 # Move cursor to line 16 column 0
     tput ed # Clear all text below cursor
     tput civis # invisible cursor
     # Begin Print Main Menu Selections
@@ -250,17 +289,23 @@ Main_Menu() {
 Select Option
 
 1. Check For PIA's Fastest Server
+
 2. Speed Test Your Current Connection Speed
+
 3. PIA Links
+
 4. Whats My IP & Location
+
 5. Show PIA Server Location Names
-6. DNS Leak Test (Hackish / Experimental)
+
+6. DNS Leak Test
+
 7. Exit / Quit
 
 EOF
     # End Print Main Menu Selections
 
-    tput cup 26 0 # Move cursor to line 26 column 0
+    tput cup 33 0 # Move cursor to line 26 column 0
     tput ed # Clear all text below cursor
 
     read -r -n 1 option # Wait and read menu selection then continue with a single key press
@@ -273,7 +318,6 @@ EOF
             Speed_Test
             ;;
         3)
-            
             Links
             ;;
         4)
@@ -295,8 +339,8 @@ EOF
             exit
             ;;
         *)
-            tput cup 16 0
-            tput ed
+            #tput cup 16 0
+            #tput ed
             Main_Menu
             ;;
     esac
@@ -306,6 +350,7 @@ EOF
 
 # Romans Chapter 10 Verse 9-10  https://www.biblegateway.com/passage/?search=Romans+10%3A9-10&version=NIV
 # 1 John Chapter 5 Verse 13     https://www.biblegateway.com/passage/?search=1+John+5%3A13&version=NIV
+
 Server_Check() {
 
     tput cup 17 0 # Move cursor to line 15 column 0
@@ -391,15 +436,16 @@ Server_Check() {
     resptime=$(tail -1 file4 | awk -F '/' '{print $5 "ms"}')
     tput cup 18 0 # Move cursor to line 20 column 0
     tput ed # Delete text below cursor
-    printf "%b\n"
+    printf "%b\n" "==========================================================================="
     tput setaf 3 # Yellow Text
     printf "%b\n\n" "${FinalIP}" "Is The Fastest IP Address and Has an Avg Response Time Of "${resptime}"" # Print fastest IP and average ping time
     tput sgr0
-
+	printf "%b\n" "==========================================================================="
+	printf "%b" "PIA Speed Test Link "; printf "%b\n" http://"${fhostname}":8888/speedtest/
     rm file1 file2 file3 file4 2> /dev/null # remove the temporary files
     cat <<"EOF"
 
-Select Option
+Select Option:
 
 1. Back To Main Menu
 
@@ -426,7 +472,7 @@ EOF
 Links(){
 	tput el1
     tput setaf 2 # Green Text
-    tput cup 16 0 # Move cursor to line 15 column 0
+    tput cup 16 0 # Move cursor to line 16 column 0
     tput ed # Clear all text below cursor
     cat <<"EOF"
 
@@ -626,35 +672,8 @@ fi
 }
 
 Speed_Test() {
-if command -v bc >/dev/null 2>&1 ; then
 tput cup 16 0
 tput ed
-printf "%b\n"
-
-else
-
-tput cup 16 0
-tput ed
-tput setaf 1
-printf "%b\n" "bc is required for Speed Testing but not found"
-printf "%b\n"
-tput sgr0
-printf "%b\n" "Would you like to try to install it now?"
-printf "%b\n"
-
-read -r -n 1 -p "[y/N] " response
-case "${response}" in
-    [yY])
-        sudo apt install bc
-        exec $(readlink -f "$0")
-		;;
-    *)
-
-		exec $(readlink -f "$0")
-        ;;
-esac
-
-fi
 PIAconnect=$(curl -m 5 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected")
                 if (( "${PIAconnect}" > 0 )) ; then
                 printf "%b\n" "${CHECKMARK}$(tput setaf 2) This Speed Test is with PIA VPN Active"
@@ -820,11 +839,12 @@ disown $SPIN_PID
 kill -9 $SPIN_PID
 BestDL=$(cat file5)
 rm file5 2> /dev/null
-if [ "${BestDL}" = http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin ]; then
-LOC=USA
-elif
+if
 [ "${BestDL}" = http://ipv4.download.thinkbroadband.com/512MB.zip ]; then
 LOC="United Kingdom"
+elif
+[ "${BestDL}" = http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin ]; then
+LOC=USA
 elif
 [ "${BestDL}" = https://speed.hetzner.de/1GB.bin ]; then
 LOC="Germany"
@@ -862,24 +882,20 @@ Location_Check(){
     tput ed
     printf "%b\n"
 	printf "%b\n" "Checking IP & Location Information"
+
             PIAconnect=$(curl -m 5 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected")
+
             if (( "${PIAconnect}" > 0 )) ; then
                 tput setaf 2 # Green Text
                 printf "%b\n" "✔  You are Protected With PIA  ✔"
             else
-				PIAconnect=$(curl -m 5 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected")
-				if (( "${PIAconnect}" > 0 )) ; then
-                tput setaf 2 # Green Text
-                printf "%b\n" "✔  You are Protected With PIA  ✔"
-                else
-                tput setaf 1 # Red Text
+				tput setaf 1 # Red Text
                 printf "%b\n" "❌  You are NOT Protected With PIA  ❌"
             fi
-            fi
+            
             tput sgr0 # Reset Terminal Colors
-			
-            curl -s "http://ipinfo.io/" | awk -F\" '{print $2":",$4}' | grep -v phone | sed 's/[",]//g' | sed '1d;$d' | sed -e "s/\b\(.\)/\u\1/g" | column -s: -t
-            MYIP=$(curl -s -4 https://icanhazip.com)
+
+			MYIP=$(curl -s -4 https://icanhazip.com)
             if [[ "${MYIP}" =~ ^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
                 MYIP="${MYIP}"
             fi
@@ -904,14 +920,19 @@ Location_Check(){
                 read -r -n 1 -p " Press Any Key To Continue " continue
 			Main_Menu
             fi
-			#curl -s http://ip-api.com/#"${MYIP}" | sed 's/[",{}]//g'
-            #MYIP=$(curl -s "http://ipinfo.io/" | awk -F\" '{print $4}' | head -n2 | tail -n1)
-			#LATLON=$(curl -s https://ipapi.co/ | grep 'Latitude / Longitude' | sed 's/.*\-text="//;s/">.*//' | tr -d ' ')
+            curl -s https://ipx.ac/json | jq -r '"IP Address : " + .ip,"IP Type: " + .geo.usage, "Network: " + .p0f.network_link, "Domain Name: " + .geo.domainName, "City: " + .geo.cityName, "State: " + .geo.regionName, "Country: " + .geo.countryName, "UTC Offset: " + .timezone, "Lat / Lon: " + "\(.geo.latitude)" + "," + "\(.geo.longitude)", "Provider: " + .geo.isp, "Hostname: " + .ptr, "ASN: " + .asn' | column -s: -t
+			#curl -s https://ipapi.co/${MYIP}/json/ | jq -r '"IP : " + .ip, "City: " + .city, "State: " + .region, "Country: " + .country_name, "TimeZone: " + .timezone, "UTC Offset: " + .utc_offset, "Location: " + "\(.latitude)" + "," + "\(.longitude)", "Provider: " + .org' | column -s: -t
+			# https://ipapi.co/${MYIP}/json/
+            # curl -s "http://ipinfo.io/" | awk -F\" '{print $2":",$4}' | sed 's/[",]//g' | sed '1d;$d' | sed -e "s/\b\(.\)/\u\1/g" | column -s: -t
+			# curl -s http://ip-api.com/#"${MYIP}" | sed 's/[",{}]//g'
+            # MYIP=$(curl -s "http://ipinfo.io/" | awk -F\" '{print $4}' | head -n2 | tail -n1)
+			# LATLON=$(curl -s https://ipapi.co/ | grep 'Latitude / Longitude' | sed 's/.*\-text="//;s/">.*//' | tr -d ' ')
+			# MAP1=$(curl -m 5 -s http://ping.pe/"${MYIP}" | grep -E "https:\/\/www\.google\.com\/maps\/place\/" | sed 's/.*href=\(.*\)>MAP<\/a><\/b><br><br>/\1/' | tr -d \'\")
+			# MAP2='http://www.whatsmyip.org/ip-geo-location/?ip='${MYIP}
+			# MAP3='https://www.geolocation.com/?ip='${MYIP}''
 			LATLON=$(curl -s https://ipapi.co/latlong/)
-            #MAP1=$(curl -m 5 -s http://ping.pe/"${MYIP}" | grep -E "https:\/\/www\.google\.com\/maps\/place\/" | sed 's/.*href=\(.*\)>MAP<\/a><\/b><br><br>/\1/' | tr -d \'\")
-			#MAP2='http://www.whatsmyip.org/ip-geo-location/?ip='${MYIP}
-			#MAP3='https://www.geolocation.com/?ip='${MYIP}''
 			MAP4='www.google.com/maps/@'${LATLON}',10z'
+			MAP5="https://www.whatsmyip.org/ip-geo-location/?ip=${MYIP}"
 			if [ -z "${MAP4}" ]; then
 			MAP4="Unable to get Map URL, Server Overload. Try again Later."
 			#if [ -z "${MAP2}" ]; then
@@ -922,10 +943,12 @@ Location_Check(){
             #printf "%b\n" "Loc Map   ""${MAP1}"
 			#printf "%b\n" "Loc Map   ""${MAP2}"
 			#printf "%b\n" "Loc Map   ""${MAP3}"
-			printf "%b" "Loc Map   ";tput setaf 2; printf ${MAP4} 
+			printf "%b" "Location Map   ";tput setaf 2; printf "%b" ${MAP4} "\n"
+			tput sgr0
+			printf "%b" "Location Map   ";tput setaf 2; printf "%b" ${MAP5} "\n"
             printf "%b\n\n"
 			tput setaf 3
-			printf "%b\n" "Is the Server Realy where you think it is?
+			printf "%b\n" "Is the Server Really where you think it is?
 
 Open the link below and wait for the lowest ping times.
 If your server is near that location you can be reasonably
@@ -935,43 +958,19 @@ sure its not a \"Virtual Server\" but real hardware in that area.
 			printf "%b" "http://ping.pe/${MYIP}" "\n\n\n"
 			tput sgr0
             read -r -n 1 -p " Press Any Key To Continue " continue
+            tput cup 16 0
+			tput el1
+			tput ed
             Main_Menu
 }
 
 LeakTest(){
 
-if hash dig 2>/dev/null; then
-    printf "%b\n"
-
-else
-    
-    tput cup 16 0
-    tput ed
-    tput setaf 1
-    printf "%b\n" "dig is required for dns leak testing but not found"
-    printf "%b\n"
-    tput sgr0
-    printf "%b\n" "Would you like to try and install it with apt?"
-    printf "%b\n"
-
-    read -r -n 1 -p "[y/N] " response
-    case "${response}" in
-        [yY])
-            sudo apt install dnsutils
-            ;;
-        *)
-			
-            Main_Menu
-            ;;
-    esac
-
-fi
-
 	tput cup 16 0
     tput el1
     tput ed
     #printf "%b\n"
-printf  "Scanning For DNS Leaks."
+printf "%b" "Scanning For DNS Leaks." "\n"
 
 	for run in {1..20}
 	do
@@ -987,6 +986,8 @@ kill -9 $SPIN_PID 2> /dev/null
 
 sed -i 's/255.255.255.255//g' DNS.txt
 sort < DNS.txt | uniq > uniDNS.txt && mv uniDNS.txt DNS.txt
+printf "%b" "Upstream-DNS-Address	Provider" "\n" >> DNS2.txt
+printf "%b" "=====================	====================" "\n\n" >> DNS2.txt
 while read IP; do
 printf "${IP} " >> DNS2.txt; printf "%b" $(whois "${IP}" | awk '/NetName/ {print $2;exit}') "\n" >> DNS2.txt
 done < DNS.txt
@@ -996,14 +997,18 @@ tput el1
 tput ed
 tput setaf 3
 printf "%b\n" "If you see your ISP IP address you have a leak.
-Your DNS is coming from the following Location's" "\n"
+Your DNS is coming from the following Location's"
+tput setaf 2; printf "%b\n" "Note: DNS may appear as an IPV6 address"  "\n"
 tput sgr0
-grep -v 'fgets' DNS2.txt | column -t
+grep -v 'fgets' DNS2.txt | column -t -e
 rm uniDNS.txt DNS2.txt DNS.txt 2> /dev/null
-printf "%b\n\n"
-		read -r -n 1 -p " Select 1 for Retest
-            
-Any Other Key For Main Menu " selection
+printf "%b\n"
+tput setaf 1
+printf "%b\n\n" "Select 1 to Retest"
+tput sgr0 
+		read -r -n 1 -p "Any Other Key For Main Menu" selection
+           
+
             case "${selection}" in
 		1)
 		LeakTest
@@ -1022,10 +1027,12 @@ ctrl_c() {
 	kill -9 $SPIN_PID 2> /dev/null
 	rm file1 file2 file3 file4 file5 uniDNS.txt DNS2.txt DNS.txt 2> /dev/null
 	tput cnorm
-	tput rmcup
+	tput rc
+	tput ed
 	exit
 }
+Dependencies=('bc' 'wget' 'dig' 'curl' 'whois' 'jq')
+CheckScriptDependencies ${Dependencies[@]}
 trap ctrl_c SIGINT
 #trap ctrl_c SIGTERM
-Banner
-Main_Menu
+CheckScriptDependencies
