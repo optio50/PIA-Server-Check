@@ -30,7 +30,7 @@ CHECKMARK="$(tput sgr0)[$(tput setaf 2)✔$(tput sgr0)]"
 XMARK="$(tput sgr0)[$(tput setaf 1)X$(tput sgr0)]"
 
 if command -v resize >/dev/null 2>&1 ; then
-    resize -s 50 105
+    resize -s 50 90
 	clear
 	tput cup 0 0
 else
@@ -44,6 +44,16 @@ if command -v netselect >/dev/null 2>&1 ; then
     printf "%b\n"
 
 else
+
+if command -v resize >/dev/null 2>&1 ; then
+    resize -s 50 105
+	clear
+	tput cup 0 0
+else
+    printf '\e[8;50;105t'
+    clear
+    tput rc
+fi
     clear
     printf "%b\n\n"
     tput setaf 1 # Red Text
@@ -169,7 +179,7 @@ if dig -V >/dev/null 2>&1 ; then
 		#ToInstall=$(printf "%s " ${ARRAY[@]})	
 	printf "%b\n"
 	printf "%b\n" "Missing Dependencies" "\n"
-	printf "%b\n" ${ARRAY[@]}
+	#printf "%b\n" ${ARRAY[@]}
 	    printf "%b\n" "Would you like to try to install them now?"
     printf "%b\n"
 
@@ -640,6 +650,7 @@ List_Names() {
 tput cup 16 0
 tput ed
 if [ "${selection}" -eq 0 ]; then # Zero from PIA_Menu. All servers PIA has
+tput sc
 tput setaf 3 # Yellow Text
 server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | uniq) # Gets ALL servers
 serverCount=$(printf "%b\n" "${server}" | wc -l) # Counts the servers being selected
@@ -665,6 +676,7 @@ fi
 printf "%b\n\n"
 read -r -n 1 -p " Press Any Key To Continue " continue
 if [ "${ActBanner}" = Yes ]; then
+tput rc
 Banner
 fi
 	Main_Menu
@@ -923,30 +935,25 @@ Location_Check(){
             curl -s https://ipx.ac/json | jq -r '"IP Address : " + .ip,"IP Type: " + .geo.usage, "Network: " + .p0f.network_link, "Domain Name: " + .geo.domainName, "City: " + .geo.cityName, "State: " + .geo.regionName, "Country: " + .geo.countryName, "UTC Offset: " + .timezone, "Lat / Lon: " + "\(.geo.latitude)" + "," + "\(.geo.longitude)", "Provider: " + .geo.isp, "Hostname: " + .ptr, "ASN: " + .asn' | column -s: -t
 			#curl -s https://ipapi.co/${MYIP}/json/ | jq -r '"IP : " + .ip, "City: " + .city, "State: " + .region, "Country: " + .country_name, "TimeZone: " + .timezone, "UTC Offset: " + .utc_offset, "Location: " + "\(.latitude)" + "," + "\(.longitude)", "Provider: " + .org' | column -s: -t
 			# https://ipapi.co/${MYIP}/json/
-            # curl -s "http://ipinfo.io/" | awk -F\" '{print $2":",$4}' | sed 's/[",]//g' | sed '1d;$d' | sed -e "s/\b\(.\)/\u\1/g" | column -s: -t
+			# curl -s "http://ipinfo.io/" | awk -F\" '{print $2":",$4}' | sed 's/[",]//g' | sed '1d;$d' | sed -e "s/\b\(.\)/\u\1/g" | column -s: -t
 			# curl -s http://ip-api.com/#"${MYIP}" | sed 's/[",{}]//g'
-            # MYIP=$(curl -s "http://ipinfo.io/" | awk -F\" '{print $4}' | head -n2 | tail -n1)
+			# MYIP=$(curl -s "http://ipinfo.io/" | awk -F\" '{print $4}' | head -n2 | tail -n1)
 			# LATLON=$(curl -s https://ipapi.co/ | grep 'Latitude / Longitude' | sed 's/.*\-text="//;s/">.*//' | tr -d ' ')
 			# MAP1=$(curl -m 5 -s http://ping.pe/"${MYIP}" | grep -E "https:\/\/www\.google\.com\/maps\/place\/" | sed 's/.*href=\(.*\)>MAP<\/a><\/b><br><br>/\1/' | tr -d \'\")
-			# MAP2='http://www.whatsmyip.org/ip-geo-location/?ip='${MYIP}
 			# MAP3='https://www.geolocation.com/?ip='${MYIP}''
 			LATLON=$(curl -s https://ipapi.co/latlong/)
+			LATLON2=$(printf ${LATLON} | sed 's/,/\//g') # Replace the , with a / for use with OpenStreetMaps
 			MAP4='www.google.com/maps/@'${LATLON}',10z'
-			MAP5="https://www.whatsmyip.org/ip-geo-location/?ip=${MYIP}"
-			if [ -z "${MAP4}" ]; then
-			MAP4="Unable to get Map URL, Server Overload. Try again Later."
-			#if [ -z "${MAP2}" ]; then
-			#MAP2="Unable to get Map URL, Server Overload. Try again Later."
-			#fi
-			fi
-            printf "%b\n"
-            #printf "%b\n" "Loc Map   ""${MAP1}"
-			#printf "%b\n" "Loc Map   ""${MAP2}"
-			#printf "%b\n" "Loc Map   ""${MAP3}"
+			MAP5='https://www.whatsmyip.org/ip-geo-location/?ip='${MYIP}
+			MAP6='https://www.openstreetmap.org/#map=12/'${LATLON2}
+			printf "%b\n"
+			tput sgr0
 			printf "%b" "Location Map   ";tput setaf 2; printf "%b" ${MAP4} "\n"
 			tput sgr0
 			printf "%b" "Location Map   ";tput setaf 2; printf "%b" ${MAP5} "\n"
-            printf "%b\n\n"
+			tput sgr0
+			printf "%b" "Location Map   ";tput setaf 2; printf "%b" ${MAP6} "\n"
+			printf "%b\n\n"
 			tput setaf 3
 			printf "%b\n" "Is the Server Really where you think it is?
 
@@ -955,7 +962,7 @@ If your server is near that location you can be reasonably
 sure its not a \"Virtual Server\" but real hardware in that area.
 "
 			tput setaf 2
-			printf "%b" "http://ping.pe/${MYIP}" "\n\n\n"
+			printf "%b" 'http://ping.pe/'${MYIP} "\n\n\n"
 			tput sgr0
             read -r -n 1 -p " Press Any Key To Continue " continue
             tput cup 16 0
