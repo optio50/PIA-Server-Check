@@ -26,6 +26,15 @@
 #----------------------------------------------------------------------------------------------------
 #tput smcup
 #tput sc
+trap ctrl_c SIGHUP SIGINT SIGTERM
+if [[ $EUID -ne 0 ]]; then
+	printf "%b\n" "This script requires root privileges for Netselect (Fastest Server Check),
+	installing required tools with apt and MAC Address Changing"
+	printf "%b\n"
+	printf "%b\n" "Example sudo "$0" "
+	exit 1
+fi
+
 CHECKMARK="$(tput sgr0)[$(tput setaf 2)✔$(tput sgr0)]"
 XMARK="$(tput sgr0)[$(tput setaf 1)X$(tput sgr0)]"
 
@@ -118,7 +127,7 @@ elif
         tput setaf 6 # Cyan Text
 cat <<"EOF"
 
-sudo dpkg -i netselect_0.3.ds1-28+b1_*.deb
+ dpkg -i netselect_0.3.ds1-28+b1_*.deb
 
 EOF
         exit
@@ -132,7 +141,7 @@ EOF
                 else
                     "${Downloader}" "${targetDL}"
                 fi
-                sudo dpkg -i "$(basename "${targetDL}")"
+                 dpkg -i "$(basename "${targetDL}")"
                 exec $(readlink -f "$0")
                 ;;
             *)
@@ -192,7 +201,7 @@ if dig -V >/dev/null 2>&1 ; then
             ;;
         *)
 
-            sudo apt install ${ARRAY[@]} && exec $(readlink -f "$0")
+             apt install ${ARRAY[@]} && exec $(readlink -f "$0")
             ;;
     esac
 
@@ -310,12 +319,14 @@ Select Option
 
 6. DNS Leak Test
 
-7. Exit / Quit
+7. Change MAC Address 
+
+8. Exit / Quit
 
 EOF
     # End Print Main Menu Selections
 
-    tput cup 33 0 # Move cursor to line 26 column 0
+    tput cup 35 0 # Move cursor to line 26 column 0
     tput ed # Clear all text below cursor
 
     read -r -n 1 option # Wait and read menu selection then continue with a single key press
@@ -340,6 +351,9 @@ EOF
 			LeakTest
 			;;
 		7)
+			Change_MAC_Menu
+			;;
+		8)
             #tput cup 25 0
             #tput ed
             tput cnorm
@@ -391,21 +405,13 @@ Server_Check() {
     if [ "${selection}" -ne 0 ]; then
         printf "%b\n" "${server}" # Prints the selected server locations
     fi
-    # Sudo Check
-    #-----------------------------------------------------------------
-    tput setaf 1 # Red Text
-    sudo -nv 2> /dev/null
-    if [ "${?}" -ne 0 ] ; then
-        printf "%b" "Netselect Requires Root Access To Run" "\n\n"
-        tput sgr0 # Reset Terminal Colors
-        sudo netselect 2> /dev/null # this is a rudimentary fix to not display the progressbar while waiting for the sudo password on the real request
-    fi
+    
     #-----------------------------------------------------------------
     #tput cup 0 15
     tput setaf 2 # Green Text
     printf "%b" "Checking For PIA's Fastest Server...Please Wait." "\n\n"
     tput sgr0 # Reset Terminal Colors
-    printf "%b\n" "${server}" | xargs sudo netselect -s 1 > file1 & SPIN_PID=$! # Pipes each of the servers into Netselect and selects fastest
+    printf "%b\n" "${server}" | xargs  netselect -s 1 > file1 & SPIN_PID=$! # Pipes each of the servers into Netselect and selects fastest
     PBint=2 # Progressbar Speed
     spin
     wait
@@ -427,7 +433,7 @@ Server_Check() {
     printf "%b\n"
     printf "%b" "Checking For The Fastest IP Address To";tput setaf 2; printf "%b" " "${fhostname}" " "\n\n"
     tput setaf 2 # Green Text
-    printf "%b\n" "${IPs}" | xargs sudo netselect -s 1 > file3 & SPIN_PID=$! # Pipe the saved IP's in Netselect and select fastest IP
+    printf "%b\n" "${IPs}" | xargs  netselect -s 1 > file3 & SPIN_PID=$! # Pipe the saved IP's in Netselect and select fastest IP
     PBint=1 # Progressbar Speed
     spin
     wait
@@ -833,17 +839,9 @@ http://it-ml-smart.serverlocation.co:82/1Gio.dat
 http://jp-tk-smart.serverlocation.co:82/1Gio.dat
 http://au-sy.serverlocation.co:82/1Gio.dat
 )
-# Sudo Check
+
 #-----------------------------------------------------------------
-tput setaf 1 # Red Text
-sudo -nv 2> /dev/null
-if [ "${?}" -ne 0 ] ; then
-printf "%b" "Netselect Requires Root Access To Run" "\n\n"
-tput sgr0 # Reset Terminal Colors
-sudo netselect 2> /dev/null # this is a rudimentary fix to not display the progressbar while waiting for the sudo password on the real request
-fi
-#-----------------------------------------------------------------
-sudo netselect "${arr[@]}" | awk '{print $2}' > file5 & SPIN_PID=$!
+ netselect "${arr[@]}" | awk '{print $2}' > file5 & SPIN_PID=$!
 PBint=1
 spin
 wait
@@ -1027,19 +1025,287 @@ tput sgr0
 		esac
 }
 
+Change_MAC_Menu() {
+
+
+	tput cup 16 0 # Move cursor to line 16 column 0
+    tput ed # Clear all text below cursor
+    tput civis # invisible cursor
+
+    
+	IFACE=$(ip -o link show | awk '{print $2,$9}' | grep UP | tr ': UP' '\n' | awk NF)
+	FACTORY_MAC=$(ethtool -P ${IFACE} | awk '{print $3}')
+	ACTIVE_MAC=$(ip addr show ${IFACE} | grep 'link/ether' | awk '{print $2}')
+	VENDOR="$(curl -s https://api.macvendors.com/"${FACTORY_MAC}")"
+	
+
+if [[ ${VENDOR} = *"error"* ]]; then 
+	VENDOR=""
+	
+fi
+
+
+
+printf "%b" "Factory MAC ${FACTORY_MAC} "; printf "%b\n" "${VENDOR}"
+printf "%b\n" "Active  MAC ${ACTIVE_MAC} "
+
+
+cat <<"EOF"
+
+Select Option
+
+1. Random MAC Change
+
+2. Restore MAC To Factory Setting
+
+3. Main Menu
+
+EOF
+
+read -r -n 1 option # Wait and read menu selection then continue with a single key press
+
+    case "${option}" in
+        1)
+            Change_Mac_Auto
+            ;;
+        2)
+            Change_Mac_Restore
+            ;;
+                
+        *)
+            #tput cup 16 0
+            #tput ed
+            Main_Menu
+            ;;
+    esac
+
+
+	
+}
+
+
+
+Change_Mac_Auto() {
+tput cup 16 0
+tput el1
+tput ed
+printf "%b\n"
+ADDRESS=""
+IFACE=$(ip -o link show | awk '{print $2,$9}' | grep UP | tr ': UP' '\n' | awk NF)
+OLD_MAC=$(ip addr show "$IFACE" | grep 'link/ether' | awk '{print $2}')
+FACTORY_MAC=$(ethtool -P $IFACE | awk '{print $3}')
+NEW_MAC="$(printf $RANDOM | md5sum | head -c 17 | sed -r 's/(..)./\1:/g')"
+LastFive=$(printf ${NEW_MAC} | cut -d: -f 2-6 )
+FirstByte=$(printf ${NEW_MAC} | cut -d: -f 1 )
+FirstByte=$(printf '%02x' $(( 0x$FirstByte & 254 | 2)) )
+NEW_MAC="${FirstByte}:${LastFive}"
+VENDOR="$(curl --max-time 5 -s https://api.macvendors.com/"${FACTORY_MAC}")"
+tput setaf 9
+printf "%b\n" "Taking Down "$IFACE""
+sleep 1
+#ifconfig "$IFACE" down
+service network-manager stop
+tput setaf 3
+
+ip link set "$IFACE" address ${NEW_MAC}
+
+    tput cup 17 0
+    tput el1
+    tput ed
+	tput setaf 3
+	
+if (( COUNT >= 3 )); then
+COUNT=0
+tput setaf 1
+printf "%b\n" "Max Retries Error... Aborting"
+tput setaf 9
+sleep 3
+Main_Menu
+
+else COUNT=$(( COUNT + 1 )); printf "%b\n" "Changing the MAC on "$IFACE", Attempt # $COUNT of MAX 3"
+
+fi    
+tput sc
+tput setaf 9
+#ifconfig "$IFACE" up
+
+service network-manager start
+printf "%b\n" "Bringing Up "$IFACE""
+tput setaf 1
+printf "%b\n" "Waiting For "$IFACE" To Become Active"
+tput setaf 9
+until [[ $ADDRESS =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; do
+		sleep 2
+		ADDRESS=$(ifconfig $IFACE | grep "inet" | grep -v '(inet6|IPv6)' | head -n 1 | awk '{print $2}')
+
+done & SPIN_PID=$!
+PBint=2
+spin
+wait
+disown $SPIN_PID 2> /dev/null
+kill -9 $SPIN_PID 2> /dev/null
+
+ACTIVE_MAC=$(ip addr show "$IFACE" | grep 'link/ether' | awk '{print $2}')
+
+tput cup 16 0
+tput el1
+tput ed
+
+if [ ${ACTIVE_MAC} = ${OLD_MAC}  ] || [ ${ACTIVE_MAC} = ${FACTORY_MAC} ] ; then
+
+printf "%b\n\n" "MAC Not Accepted"
+printf "%b" "MAC Is Still " ${ACTIVE_MAC} "\n\n"
+printf "%b" "Factory MAC ;" ${FACTORY_MAC} "\n" | column -t -s";"
+printf "%b" "Old MAC     ;" ${OLD_MAC} "\n" | column -t -s";"
+printf "%b\n" "Restarting Random MAC Assignment"
+sleep 3
+Change_Mac_Auto
+else
+
+
+
+
+if [[ ${VENDOR} = *"error"* ]]; then 
+	VENDOR=""
+	
+fi
+
+printf "%b" "Factory MAC ;" "${FACTORY_MAC} ;" "${VENDOR} ;" "\n\n" | column -t -s";"
+printf "%b" "Old MAC     ;" "${OLD_MAC} ;" "\n\n" | column -t -s";"
+printf "%b" "New MAC     ;" "${NEW_MAC} ;" "\n\n" | column -t -s";"
+printf "%b\n"
+fi
+
+if [ ${ACTIVE_MAC} = ${NEW_MAC} ]; then
+COUNT=0
+tput setaf 2
+printf "%b" "Success!!" "\n\n"
+tput setaf 9
+fi
+ADDRESS=$(ifconfig $IFACE | grep "inet" | grep -v '(inet6|IPv6)' | head -n 1 | awk '{print $2}')
+printf "%b\n\n" "$IFACE Is Up and has an IP address of $ADDRESS "
+
+cat <<"EOF"
+
+Select Option
+
+1. Random MAC Change
+
+2. Change MAC Menu
+
+3. Main Menu
+
+EOF
+
+tput setaf 9
+read -r -n 1  selection
+            case "${selection}" in
+		1)
+		Change_Mac_Auto
+		;;
+
+		2)
+		Change_MAC_Menu
+		;;
+
+		*)
+		Main_Menu
+		;;
+		esac
+
+}
+
+
+Change_Mac_Restore() {
+
+	tput cup 16 0 # Move cursor to line 16 column 0
+    tput ed # Clear all text below cursor
+    tput civis # invisible cursor
+ADDRESS=""
+IFACE=$(ip -o link show | awk '{print $2,$9}' | grep UP | tr ': UP' '\n' | awk NF)
+printf "%b\n" "Restoring ${IFACE} Factory MAC Address"
+printf "%b\n" "Taking ${IFACE} Offline"
+VENDOR="$(curl --max-time 5 -s https://api.macvendors.com/"${FACTORY_MAC}")"
+service network-manager stop
+ip link set ${IFACE} address $(ethtool -P ${IFACE} | awk '{print $3}')
+
+if (( COUNT >= 3 )); then
+COUNT=0
+tput setaf 1
+printf "%b\n" "Max Retries Error... Aborting"
+tput setaf 9
+sleep 3
+Main_Menu
+
+else COUNT=$(( COUNT + 1 )); printf "%b\n" "Restoring the Factory MAC on "$IFACE", Attempt # $COUNT of MAX 3"
+
+fi    
+tput sc
+tput setaf 9
+#ifconfig "$IFACE" up
+
+service network-manager start
+printf "%b\n\n" "Bringing Up "$IFACE""
+tput setaf 1
+printf "%b\n\n" "Waiting For "$IFACE" To Become Active"
+tput setaf 9
+
+until [[ $ADDRESS =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; do
+		sleep 2
+		ADDRESS=$(ifconfig $IFACE | grep "inet" | grep -v '(inet6|IPv6)' | head -n 1 | awk '{print $2}')
+
+done & SPIN_PID=$!
+PBint=2
+spin
+wait
+disown $SPIN_PID 2> /dev/null
+kill -9 $SPIN_PID 2> /dev/null
+
+
+FACTORY_MAC=$(ethtool -P ${IFACE} | awk '{print $3}')
+ACTIVE_MAC=$(ip addr show ${IFACE} | grep 'link/ether' | awk '{print $2}')
+ADDRESS=$(ifconfig $IFACE | grep "inet" | grep -v '(inet6|IPv6)' | head -n 1 | awk '{print $2}')
+if [ ${FACTORY_MAC} = ${ACTIVE_MAC} ]; then
+COUNT=0
+tput setaf 2
+	tput cup 16 0 # Move cursor to line 16 column 0
+    tput ed # Clear all text below cursor
+    tput civis # invisible cursor
+printf "%b\n\n"
+printf "%b\n" "Success!!
+Active MAC Matches Factory MAC"
+tput setaf 9
+fi
+
+
+if [[ ${VENDOR} = *"error"* ]]; then 
+VENDOR=""
+fi
+
+printf "%b" "Factory MAC ${FACTORY_MAC} "; printf "%b\n" "${VENDOR}"
+printf "%b\n" "Active  MAC ${ACTIVE_MAC} "
+printf "%b\n\n" "${IFACE} Is Up and has an IP address of ${ADDRESS}"
+
+read -r -n 1 -p " Press Any Key To Continue " continue
+Main_Menu
+	
+}
+
+
 ctrl_c() {
-	#	tput el1
-    #    printf "%b\n\n" "CTRL-C Detected...Exiting"
+	printf "%b\n\n" "CTRL-C Detected...Waiting for Clean-Up Before Exiting"
+	service network-manager start
 	disown $SPIN_PID 2> /dev/null
 	kill -9 $SPIN_PID 2> /dev/null
 	rm file1 file2 file3 file4 file5 uniDNS.txt DNS2.txt DNS.txt 2> /dev/null
 	tput cnorm
-	tput rc
+	tput cup 0 0
+	#tput rc
 	tput ed
 	exit
 }
 Dependencies=('bc' 'wget' 'dig' 'curl' 'whois' 'jq')
 CheckScriptDependencies ${Dependencies[@]}
-trap ctrl_c SIGINT
+trap ctrl_c SIGHUP SIGINT SIGTERM
 #trap ctrl_c SIGTERM
-CheckScriptDependencies
+#CheckScriptDependencies
