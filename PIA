@@ -351,7 +351,7 @@ EOF
 			LeakTest
 			;;
 		7)
-			Change_MAC_Menu
+			Change_Mac_Menu
 			;;
 		8)
             #tput cup 25 0
@@ -1025,7 +1025,7 @@ tput sgr0
 		esac
 }
 
-Change_MAC_Menu() {
+Change_Mac_Menu() {
 
 
 	tput cup 16 0 # Move cursor to line 16 column 0
@@ -1136,7 +1136,7 @@ printf "%b\n" "Waiting For "$IFACE" To Become Active"
 tput setaf 9
 until [[ $ADDRESS =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; do
 		sleep 2
-		ADDRESS=$(ifconfig $IFACE | grep "inet" | grep -v '(inet6|IPv6)' | head -n 1 | awk '{print $2}')
+		ADDRESS=$(hostname -I | awk '{print $1}')
 
 done & SPIN_PID=$!
 PBint=2
@@ -1182,7 +1182,7 @@ tput setaf 2
 printf "%b" "Success!!" "\n\n"
 tput setaf 9
 fi
-ADDRESS=$(ifconfig $IFACE | grep "inet" | grep -v '(inet6|IPv6)' | head -n 1 | awk '{print $2}')
+ADDRESS=$(hostname -I | awk '{print $1}')
 printf "%b\n\n" "$IFACE Is Up and has an IP address of $ADDRESS "
 
 cat <<"EOF"
@@ -1191,7 +1191,7 @@ Select Option
 
 1. Random MAC Change
 
-2. Change MAC Menu
+2. Restore MAC To Factory Address
 
 3. Main Menu
 
@@ -1205,7 +1205,7 @@ read -r -n 1  selection
 		;;
 
 		2)
-		Change_MAC_Menu
+		Change_Mac_Restore
 		;;
 
 		*)
@@ -1224,10 +1224,15 @@ Change_Mac_Restore() {
 ADDRESS=""
 IFACE=$(ip -o link show | awk '{print $2,$9}' | grep UP | tr ': UP' '\n' | awk NF)
 printf "%b\n" "Restoring ${IFACE} Factory MAC Address"
+sleep 2
+tput cup 16 0 # Move cursor to line 16 column 0
+tput ed # Clear all text below cursor
 printf "%b\n" "Taking ${IFACE} Offline"
-VENDOR="$(curl --max-time 5 -s https://api.macvendors.com/"${FACTORY_MAC}")"
+sleep 2
+tput cup 17 0 # Move cursor to line 16 column 0
+tput ed # Clear all text below cursor
+
 service network-manager stop
-ip link set ${IFACE} address $(ethtool -P ${IFACE} | awk '{print $3}')
 
 if (( COUNT >= 3 )); then
 COUNT=0
@@ -1237,43 +1242,52 @@ tput setaf 9
 sleep 3
 Main_Menu
 
-else COUNT=$(( COUNT + 1 )); printf "%b\n" "Restoring the Factory MAC on "$IFACE", Attempt # $COUNT of MAX 3"
-
+else
+tput cup 16 0 # Move cursor to line 16 column 0
+tput ed # Clear all text below cursor
+COUNT=$(( COUNT + 1 )); printf "%b\n" "Restoring the Factory MAC on "$IFACE", Attempt # $COUNT of MAX 3"
+ip link set ${IFACE} address $(ethtool -P ${IFACE} | awk '{print $3}')
 fi    
-tput sc
+
 tput setaf 9
 #ifconfig "$IFACE" up
 
 service network-manager start
+tput cup 16 0 # Move cursor to line 16 column 0
+tput ed # Clear all text below cursor
 printf "%b\n\n" "Bringing Up "$IFACE""
+sleep 2
+tput cup 16 0 # Move cursor to line 16 column 0
+tput ed # Clear all text below cursor
 tput setaf 1
 printf "%b\n\n" "Waiting For "$IFACE" To Become Active"
 tput setaf 9
 
 until [[ $ADDRESS =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; do
 		sleep 2
-		ADDRESS=$(ifconfig $IFACE | grep "inet" | grep -v '(inet6|IPv6)' | head -n 1 | awk '{print $2}')
+		ADDRESS=$(hostname -I | awk '{print $1}')
 
 done & SPIN_PID=$!
+
 PBint=2
 spin
 wait
 disown $SPIN_PID 2> /dev/null
 kill -9 $SPIN_PID 2> /dev/null
-
-
+VENDOR="$(curl --max-time 5 -s https://api.macvendors.com/"${FACTORY_MAC}")"
 FACTORY_MAC=$(ethtool -P ${IFACE} | awk '{print $3}')
 ACTIVE_MAC=$(ip addr show ${IFACE} | grep 'link/ether' | awk '{print $2}')
-ADDRESS=$(ifconfig $IFACE | grep "inet" | grep -v '(inet6|IPv6)' | head -n 1 | awk '{print $2}')
+ADDRESS=$(hostname -I | awk '{print $1}')
 if [ ${FACTORY_MAC} = ${ACTIVE_MAC} ]; then
 COUNT=0
 tput setaf 2
 	tput cup 16 0 # Move cursor to line 16 column 0
     tput ed # Clear all text below cursor
     tput civis # invisible cursor
-printf "%b\n\n"
+#printf "%b\n\n"
 printf "%b\n" "Success!!
 Active MAC Matches Factory MAC"
+printf "%b\n"
 tput setaf 9
 fi
 
@@ -1284,6 +1298,7 @@ fi
 
 printf "%b" "Factory MAC ${FACTORY_MAC} "; printf "%b\n" "${VENDOR}"
 printf "%b\n" "Active  MAC ${ACTIVE_MAC} "
+printf "%b\n"
 printf "%b\n\n" "${IFACE} Is Up and has an IP address of ${ADDRESS}"
 
 read -r -n 1 -p " Press Any Key To Continue " continue
