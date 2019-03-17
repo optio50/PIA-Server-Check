@@ -1046,10 +1046,21 @@ fi
 
 
 
+
+
 printf "%b" "Factory MAC ${FACTORY_MAC} "; printf "%b\n" "${VENDOR}"
 printf "%b\n" "Active  MAC ${ACTIVE_MAC} "
 
-
+if [[ ${IFACE} = "wlx"* ]]; then
+tput setaf 1
+printf "%b\n\n" "Your Wireless Device appears to be external (USB?)
+Changing MAC's on external adapters is not supported do to the newly implemented
+Predictable Network Interface Names protocol"
+tput setaf 9
+printf "%b\n" "Returning To Main Menu"
+sleep 10
+Main_Menu
+fi
 cat <<"EOF"
 
 Select Option
