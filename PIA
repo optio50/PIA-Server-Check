@@ -1027,6 +1027,21 @@ tput sgr0
 
 Change_Mac_Menu() {
 
+mount |grep nfs > /dev/null 2>&1
+if
+[ "$?" = 0 ]; then
+	tput cup 16 0 # Move cursor to line 16 column 0
+    tput ed # Clear all text below cursor
+    tput civis # invisible cursor
+    tput setaf 1
+ printf "%b\n" "It looks like you may have network resources mounted
+ Disconnect Network drives before changing your MAC"
+ printf "%b\n"
+ tput sgr0
+read -r -n 1 -p " Press Any Key To Continue " continue
+Main_Menu
+
+fi
 
 	tput cup 16 0 # Move cursor to line 16 column 0
     tput ed # Clear all text below cursor
@@ -1057,6 +1072,7 @@ printf "%b\n\n" "Your Wireless Device appears to be external (USB?)
 Changing MAC's on external adapters is not supported do to the newly implemented
 Predictable Network Interface Names protocol"
 tput setaf 9
+tput sgr0
 printf "%b\n" "Returning To Main Menu"
 sleep 10
 Main_Menu
@@ -1115,7 +1131,9 @@ tput setaf 9
 printf "%b\n" "Taking Down "$IFACE""
 sleep 1
 #ifconfig "$IFACE" down
+ip link set dev "$IFACE" down
 service network-manager stop
+
 tput setaf 3
 
 ip link set "$IFACE" address ${NEW_MAC}
@@ -1130,6 +1148,8 @@ COUNT=0
 tput setaf 1
 printf "%b\n" "Max Retries Error... Aborting"
 tput setaf 9
+ip link set dev "$IFACE" up
+service network-manager start
 sleep 3
 Main_Menu
 
@@ -1139,7 +1159,7 @@ fi
 tput sc
 tput setaf 9
 #ifconfig "$IFACE" up
-
+ip link set dev "$IFACE" up
 service network-manager start
 printf "%b\n" "Bringing Up "$IFACE""
 tput setaf 1
@@ -1192,6 +1212,7 @@ COUNT=0
 tput setaf 2
 printf "%b" "Success!!" "\n\n"
 tput setaf 9
+tput sgr0
 fi
 ADDRESS=$(hostname -I | awk '{print $1}')
 printf "%b\n\n" "$IFACE Is Up and has an IP address of $ADDRESS "
@@ -1209,6 +1230,7 @@ Select Option
 EOF
 
 tput setaf 9
+tput sgr0
 read -r -n 1  selection
             case "${selection}" in
 		1)
@@ -1242,13 +1264,15 @@ printf "%b\n" "Taking ${IFACE} Offline"
 sleep 2
 tput cup 17 0 # Move cursor to line 16 column 0
 tput ed # Clear all text below cursor
-
+ip link set dev "$IFACE"  down
 service network-manager stop
 
 if (( COUNT >= 3 )); then
 COUNT=0
 tput setaf 1
 printf "%b\n" "Max Retries Error... Aborting"
+ip link set dev "$IFACE" up
+service network-manager restart
 tput setaf 9
 sleep 3
 Main_Menu
@@ -1262,7 +1286,7 @@ fi
 
 tput setaf 9
 #ifconfig "$IFACE" up
-
+ip link set dev "$IFACE" up
 service network-manager start
 tput cup 16 0 # Move cursor to line 16 column 0
 tput ed # Clear all text below cursor
@@ -1273,7 +1297,7 @@ tput ed # Clear all text below cursor
 tput setaf 1
 printf "%b\n\n" "Waiting For "$IFACE" To Become Active"
 tput setaf 9
-
+tput sgr0
 until [[ $ADDRESS =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; do
 		sleep 2
 		ADDRESS=$(hostname -I | awk '{print $1}')
@@ -1300,13 +1324,14 @@ printf "%b\n" "Success!!
 Active MAC Matches Factory MAC"
 printf "%b\n"
 tput setaf 9
+tput sgr0
 fi
 
 
 if [[ ${VENDOR} = *"error"* ]]; then 
 VENDOR=""
 fi
-
+tput sgr0
 printf "%b" "Factory MAC ${FACTORY_MAC} "; printf "%b\n" "${VENDOR}"
 printf "%b\n" "Active  MAC ${ACTIVE_MAC} "
 printf "%b\n"
@@ -1330,7 +1355,7 @@ ctrl_c() {
 	tput ed
 	exit
 }
-Dependencies=('bc' 'wget' 'dig' 'curl' 'whois' 'jq')
+Dependencies=('bc' 'wget' 'dig' 'curl' 'whois' 'jq' 'ethtool')
 CheckScriptDependencies ${Dependencies[@]}
 trap ctrl_c SIGHUP SIGINT SIGTERM
 #trap ctrl_c SIGTERM
