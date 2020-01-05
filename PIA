@@ -184,7 +184,7 @@ if dig -V >/dev/null 2>&1 ; then
 		printf " "
 		else
 		ARRAY=( ${ARRAY[@]/dig} )
-		ARRAY=(${ARRAY[@]} dnsutils)
+		ARRAY=(${ARRAY[@]} dnsutils ncurses-bin)
 		#ToInstall=$(printf "%s " ${ARRAY[@]})	
 	printf "%b\n"
 	printf "%b\n" "Missing Dependencies" "\n"
@@ -254,10 +254,15 @@ else
     tput cup 0 0 # Move cursor to line 0 column 0
     tput ed # Clear all text below cursor
     tput cup 5 0
-    printf "%b\n" "Retried 3 Times"
-    printf "%b" "Network appears to be down. Unable to reach google.com for network connectivity test" "\n\n"
+    printf "%b\n" "Retried 3 Times\n"
+    printf "%b\n" "Network appears to be down. Unable to reach google.com for network connectivity test\n"
+    printf "%b\n" "This script is pretty useless without Network access" "\n"
     tput cnorm
-    exit
+    printf "%b\n" "Continuing to Main Menu in 10 seconds"
+    sleep 10
+    clear
+    Banner
+    Main_Menu
 fi
 }
 # Main script starts here
@@ -265,7 +270,7 @@ fi
 
 Banner() {
 	#tput rc
-	#tput cup 0 0 # Move cursor to line 15 column 0
+	tput cup 0 0 # Move cursor to line 0 column 0
 	#tput ed # Clear all text below cursor
 	tput setaf 2 # Green Text
 	cat <<"EOF"
@@ -1027,6 +1032,7 @@ tput sgr0
 
 Change_Mac_Menu() {
 
+
 mount |grep nfs > /dev/null 2>&1
 if
 [ "$?" = 0 ]; then
@@ -1047,24 +1053,34 @@ fi
     tput ed # Clear all text below cursor
     tput civis # invisible cursor
 
+    printf "%b\n" "Retreiving MAC Vendor Info"
     
 	IFACE=$(ip -o link show | awk '{print $2,$9}' | grep UP | tr ': UP' '\n' | awk NF)
 	FACTORY_MAC=$(ethtool -P ${IFACE} | awk '{print $3}')
 	ACTIVE_MAC=$(ip addr show ${IFACE} | grep 'link/ether' | awk '{print $2}')
 	VENDOR="$(curl -s https://api.macvendors.com/"${FACTORY_MAC}")"
+	sleep 1
+	VENDOR2="$(curl --max-time 5 -s https://api.macvendors.com/"${ACTIVE_MAC} ")"
+
 	
+
 
 if [[ ${VENDOR} = *"error"* ]]; then 
-	VENDOR=""
-	
+	VENDOR="MFG Not Listed"
 fi
 
+if [[ ${VENDOR2} = *"error"* ]]; then 
+	VENDOR2="MFG Not Listed"
+fi
+
+	tput cup 16 0 # Move cursor to line 16 column 0
+    tput ed # Clear all text below cursor
+    tput civis # invisible cursor
 
 
+printf "%b" "Factory MAC ${FACTORY_MAC} "; printf "%b\n" "		${VENDOR}"
+printf "%b" "Active  MAC ${ACTIVE_MAC} "; printf "%b\n" "		${VENDOR2}"
 
-
-printf "%b" "Factory MAC ${FACTORY_MAC} "; printf "%b\n" "${VENDOR}"
-printf "%b\n" "Active  MAC ${ACTIVE_MAC} "
 
 if [[ ${IFACE} = "wlx"* ]]; then
 tput setaf 1
@@ -1085,7 +1101,9 @@ Select Option
 
 2. Restore MAC To Factory Setting
 
-3. Main Menu
+3. Manual MAC Address
+
+4. Main Menu
 
 EOF
 
@@ -1098,7 +1116,9 @@ read -r -n 1 option # Wait and read menu selection then continue with a single k
         2)
             Change_Mac_Restore
             ;;
-                
+        3)
+			Manual_Mac
+            ;;
         *)
             #tput cup 16 0
             #tput ed
@@ -1126,7 +1146,6 @@ LastFive=$(printf ${NEW_MAC} | cut -d: -f 2-6 )
 FirstByte=$(printf ${NEW_MAC} | cut -d: -f 1 )
 FirstByte=$(printf '%02x' $(( 0x$FirstByte & 254 | 2)) )
 NEW_MAC="${FirstByte}:${LastFive}"
-VENDOR="$(curl --max-time 5 -s https://api.macvendors.com/"${FACTORY_MAC}")"
 tput setaf 9
 printf "%b\n" "Taking Down "$IFACE""
 sleep 1
@@ -1193,18 +1212,28 @@ sleep 3
 Change_Mac_Auto
 else
 
+printf "%b\n" "Retreiving MAC Vendor Info"
 
-
+VENDOR="$(curl --max-time 5 -s https://api.macvendors.com/"${FACTORY_MAC} ")"
+sleep 1
+VENDOR2="$(curl --max-time 5 -s https://api.macvendors.com/"${OLD_MAC}")"
+sleep 1
+VENDOR3="$(curl --max-time 5 -s https://api.macvendors.com/"${ACTIVE_MAC} ")"
 
 if [[ ${VENDOR} = *"error"* ]]; then 
-	VENDOR=""
-	
+	VENDOR="MFG Not Listed"
 fi
 
-printf "%b" "Factory MAC ;" "${FACTORY_MAC} ;" "${VENDOR} ;" "\n\n" | column -t -s";"
-printf "%b" "Old MAC     ;" "${OLD_MAC} ;" "\n\n" | column -t -s";"
-printf "%b" "New MAC     ;" "${NEW_MAC} ;" "\n\n" | column -t -s";"
-printf "%b\n"
+if [[ ${VENDOR2} = *"error"* ]]; then 
+	VENDOR2="MFG Not Listed"
+fi
+
+if [[ ${VENDOR3} = *"error"* ]]; then 
+	VENDOR3="MFG Not Listed"
+fi
+
+
+
 fi
 
 if [ ${ACTIVE_MAC} = ${NEW_MAC} ]; then
@@ -1213,19 +1242,25 @@ tput setaf 2
 printf "%b" "Success!!" "\n\n"
 tput setaf 9
 tput sgr0
-fi
+
+printf "%b" "Factory MAC ;" "${FACTORY_MAC} ;" "${VENDOR} ;" "\n\n" | column -t -s";"
+printf "%b" "Old MAC     ;" "${OLD_MAC} ;" "${VENDOR2} ;" "\n\n" | column -t -s";"
+printf "%b" "New MAC     ;" "${NEW_MAC} ;" "${VENDOR3} ;" "\n\n" | column -t -s";"
+printf "%b\n"
 ADDRESS=$(hostname -I | awk '{print $1}')
 printf "%b\n\n" "$IFACE Is Up and has an IP address of $ADDRESS "
-
+fi
 cat <<"EOF"
 
 Select Option
 
 1. Random MAC Change
 
-2. Restore MAC To Factory Address
+2. Restore MAC To Factory Setting
 
-3. Main Menu
+3. Manual MAC Address
+
+4. Main Menu
 
 EOF
 
@@ -1241,6 +1276,10 @@ read -r -n 1  selection
 		Change_Mac_Restore
 		;;
 
+		3)
+		Manual_Mac
+		;;
+		
 		*)
 		Main_Menu
 		;;
@@ -1309,9 +1348,11 @@ spin
 wait
 disown $SPIN_PID 2> /dev/null
 kill -9 $SPIN_PID 2> /dev/null
-VENDOR="$(curl --max-time 5 -s https://api.macvendors.com/"${FACTORY_MAC}")"
 FACTORY_MAC=$(ethtool -P ${IFACE} | awk '{print $3}')
 ACTIVE_MAC=$(ip addr show ${IFACE} | grep 'link/ether' | awk '{print $2}')
+VENDOR="$(curl --max-time 5 -s https://api.macvendors.com/"${FACTORY_MAC}")"
+sleep 1
+VENDOR2="$(curl --max-time 5 -s https://api.macvendors.com/"${ACTIVE_MAC} ")"
 ADDRESS=$(hostname -I | awk '{print $1}')
 if [ ${FACTORY_MAC} = ${ACTIVE_MAC} ]; then
 COUNT=0
@@ -1329,11 +1370,17 @@ fi
 
 
 if [[ ${VENDOR} = *"error"* ]]; then 
-VENDOR=""
+	VENDOR="MFG Not Listed"
 fi
+
+if [[ ${VENDOR2} = *"error"* ]]; then 
+	VENDOR2="MFG Not Listed"
+fi
+
+
 tput sgr0
-printf "%b" "Factory MAC ${FACTORY_MAC} "; printf "%b\n" "${VENDOR}"
-printf "%b\n" "Active  MAC ${ACTIVE_MAC} "
+printf "%b" "Factory MAC " "\t" "${FACTORY_MAC}" "\t" "${VENDOR}" "\n"
+printf "%b" "Active  MAC " "\t" "${ACTIVE_MAC}" "\t" "${VENDOR2}" "\n\n"
 printf "%b\n"
 printf "%b\n\n" "${IFACE} Is Up and has an IP address of ${ADDRESS}"
 
@@ -1342,10 +1389,197 @@ Main_Menu
 	
 }
 
+#----------------------------------------------------------------------
+Manual_Mac() {
 
+tput cup 16 0 # Move cursor to line 16 column 0
+tput ed # Clear all text below cursor
+tput sgr0
+
+cat <<"EOF"
+
+Enter MAC Address in standard format and press enter
+
+Example:  7C:8B:CA:02:88:70 or 00:1B:63:84:45:E6
+
+7C:8B:CA:*:*:*	TP-LINK
+00:1B:63:*:*:*	Apple
+10:7D:1A:*:*:*	Dell
+18:67:B0:*:*:*	Samsung
+34:D2:70:*:*:*	Amazon
+B8:4F:D5:*:*:*	Microsoft
+08:9E:08:*:*:*	Google
+
+EOF
+tput setaf 3
+read -p "MAC Address:  " REPLY
+tput setaf 2
+Man_MAC="$REPLY"
+tput cup 16 0
+tput el1
+tput ed
+printf "%b\n"
+if
+[[ "$Man_MAC" =~ ^([a-fA-F0-9]{2}:){5}[a-fA-F0-9]{2}$ ]]; then
+printf "%b\n" "Good Mac Address"
+else
+printf "%b\n" "Invalid Mac Address"
+sleep 3
+Manual_Mac
+fi
+OLD_MAC=$(ip addr show "$IFACE" | grep 'link/ether' | awk '{print $2}')
+FACTORY_MAC=$(ethtool -P $IFACE | awk '{print $3}')
+ADDRESS=""
+ACTIVE_MAC=$(ip addr show "$IFACE" | grep 'link/ether' | awk '{print $2}')
+IFACE=$(ip -o link show | awk '{print $2,$9}' | grep UP | tr ': UP' '\n' | awk NF)
+VENDOR="$(curl --max-time 5 -s https://api.macvendors.com/"${FACTORY_MAC}")"
+tput setaf 9
+printf "%b\n" "Taking Down "$IFACE""
+sleep 1
+#ifconfig "$IFACE" down
+ip link set dev "$IFACE" down
+service network-manager stop
+
+tput setaf 3
+
+ip link set "$IFACE" address "$Man_MAC"
+
+    tput cup 17 0
+    tput el1
+    tput ed
+	tput setaf 3
+	
+if (( COUNT >= 3 )); then
+COUNT=0
+tput setaf 1
+printf "%b\n" "Max Retries Error... Aborting"
+tput setaf 9
+ip link set dev "$IFACE" up
+service network-manager start &
+sleep 3
+Main_Menu
+
+else COUNT=$(( COUNT + 1 )); printf "%b\n" "Changing the MAC on "$IFACE", Attempt # $COUNT of MAX 3"
+
+fi    
+tput sc
+tput setaf 9
+#ifconfig "$IFACE" up
+ip link set dev "$IFACE" up
+service network-manager start
+printf "%b\n" "Bringing Up "$IFACE""
+tput setaf 1
+printf "%b\n" "Waiting For "$IFACE" To Become Active"
+tput setaf 9
+until [[ $ADDRESS =~ [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3} ]]; do
+		sleep 2
+		ADDRESS=$(hostname -I | awk '{print $1}')
+
+done & SPIN_PID=$!
+PBint=2
+spin
+wait
+disown $SPIN_PID 2> /dev/null
+kill -9 $SPIN_PID 2> /dev/null
+
+ACTIVE_MAC=$(ip addr show "$IFACE" | grep 'link/ether' | awk '{print $2}')
+
+tput cup 16 0
+tput el1
+tput ed
+
+if [ ${ACTIVE_MAC} = ${OLD_MAC}  ] || [ ${ACTIVE_MAC} = ${FACTORY_MAC} ] ; then
+
+printf "%b\n\n" "MAC Not Accepted"
+printf "%b" "MAC Is Still " ${ACTIVE_MAC} "\n\n"
+printf "%b" "Factory MAC ;" ${FACTORY_MAC} "\n" | column -t -s";"
+printf "%b" "Old MAC     ;" ${OLD_MAC} "\n" | column -t -s";"
+printf "%b\n" "Returning to MAC Assignment Menu"
+sleep 3
+Manual_Mac
+else
+
+printf "%b\n" "Retreiving MAC Vendor Info"
+
+VENDOR="$(curl --max-time 5 -s https://api.macvendors.com/"${FACTORY_MAC} ")"
+sleep 1
+VENDOR2="$(curl --max-time 5 -s https://api.macvendors.com/"${OLD_MAC}")"
+sleep 1
+VENDOR3="$(curl --max-time 5 -s https://api.macvendors.com/"${ACTIVE_MAC} ")"
+
+if [[ ${VENDOR} = *"error"* ]]; then 
+	VENDOR="MFG Not Listed"
+fi
+
+if [[ ${VENDOR2} = *"error"* ]]; then 
+	VENDOR2="MFG Not Listed"
+fi
+
+if [[ ${VENDOR3} = *"error"* ]]; then 
+	VENDOR3="MFG Not Listed"
+fi
+
+tput cup 16 0
+tput el1
+tput ed
+
+printf "%b" "Factory MAC ;" "${FACTORY_MAC} ;" "		${VENDOR} ;" "\n\n" | column -t -s";"
+printf "%b" "Old MAC     ;" "${OLD_MAC} ;" "		${VENDOR2} ;" "\n\n" | column -t -s";"
+printf "%b" "New MAC     ;" "${ACTIVE_MAC} ;" "		${VENDOR3} ;" "\n\n" | column -t -s";"
+printf "%b\n"
+fi
+ACTIVE_MAC=$(ip addr show "$IFACE" | grep 'link/ether' | awk '{print $2}')
+if [ ${ACTIVE_MAC} = ${Man_MAC} ]; then
+COUNT=0
+tput setaf 2
+printf "%b" "Success!!" "\n\n"
+tput setaf 9
+tput sgr0
+fi
+ADDRESS=$(hostname -I | awk '{print $1}')
+printf "%b\n\n" "$IFACE Is Up and has an IP address of $ADDRESS "
+
+cat <<"EOF"
+
+Select Option
+
+1. Random MAC Change
+
+2. Restore MAC To Factory Setting
+
+3. Manual MAC Address
+
+4. Main Menu
+
+EOF
+
+tput setaf 9
+tput sgr0
+read -r -n 1  selection
+            case "${selection}" in
+		1)
+		Change_Mac_Auto
+		;;
+
+		2)
+		Change_Mac_Restore
+		;;
+
+		3)
+		Manual_Mac
+		;;
+		
+		*)
+		Main_Menu
+		;;
+		esac
+
+
+}
+#----------------------------------------------------------------------
 ctrl_c() {
 	printf "%b\n\n" "CTRL-C Detected...Waiting for Clean-Up Before Exiting"
-	service network-manager start
+	service network-manager start &
 	disown $SPIN_PID 2> /dev/null
 	kill -9 $SPIN_PID 2> /dev/null
 	rm file1 file2 file3 file4 file5 uniDNS.txt DNS2.txt DNS.txt 2> /dev/null
@@ -1355,7 +1589,7 @@ ctrl_c() {
 	tput ed
 	exit
 }
-Dependencies=('bc' 'wget' 'dig' 'curl' 'whois' 'jq' 'ethtool')
+Dependencies=('bc' 'wget' 'dig' 'curl' 'whois' 'jq' 'ethtool' )
 CheckScriptDependencies ${Dependencies[@]}
 trap ctrl_c SIGHUP SIGINT SIGTERM
 #trap ctrl_c SIGTERM
