@@ -18,6 +18,12 @@ Show PIA Server Names
 
 Check to make sure you are not connected to a "Virtual VPN Server" instead of real hardware in the selected city.
 
+This script can do others thing not strictly related to PIA that non-subscribers can use.
+Change your MAC address   
+Speed Test your connection    
+DNS Leak Test    
+Show your Geo-Location-IP information and verify the VPN location is REAL by using ping.pe website.
+
 ==========================================================================
 
 Netselect is required.
