@@ -1,18 +1,29 @@
 #!/bin/bash
-#World Wide Servers by ip
-#wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
+#
+# World Wide Servers by ip
+# wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
 #
 # Some Speed Test File Locations
 # http://support.smartdnsproxy.com/customer/portal/articles/1907772-vpn-server-locations-addresses
-#
+# http://speedtest.sea01.softlayer.com/downloads/test100.zip
+# http://proof.ovh.ca/files/100Mio.dat
+# http://793343545.r.cdn77.net/design/swf/testfile100.bin
+# http://speedtest.atlanta.linode.com/100MB-atlanta.bin
+# http://speedtest.dallas.linode.com/100MB-dallas.bin
+# http://speedtest.wdc01.softlayer.com/downloads/test100.zip
+# http://mirror.us.leaseweb.net/speedtest/100mb.bin
+# http://speedtest.sjc01.softlayer.com/downloads/test100.zip
+#http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin
 # U.S Servers by ip
-#wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep us- | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
+# wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep us- | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
 #
 # tput is used to move the cursor and change colors
 # This script is only verified with Ubuntu and distros based on Ubuntu
 # sudo and apt are used to offer user to install an unmet dependancy that is package installable
 # Outside of package manager Dependency requires manual install
-#curl -s 'https://api.ipify.org'
+# 
+# Get IP Source
+# curl -s 'https://api.ipify.org'
 #
 #
 #  json output for geolocation
@@ -24,8 +35,7 @@
 #    exit 1
 #fi
 #----------------------------------------------------------------------------------------------------
-#tput smcup
-#tput sc
+
 trap ctrl_c SIGHUP SIGINT SIGTERM
 if [[ $EUID -ne 0 ]]; then
 	printf "%b\n" "This script requires root privileges for Netselect (Fastest Server Check),
@@ -713,7 +723,7 @@ Select Download Size
 3. 50  MB
 4. 100 MB
 5. 200 MB
-6. 500 MB
+6. 400 MB
 7. Main Menu
 
 EOF
@@ -736,7 +746,7 @@ case "${size}" in
 	FileSize="200"
 	;;
 	6)
-	FileSize="500"
+	FileSize="400"
 	;;
 	*)
 	Main_Menu
@@ -765,7 +775,8 @@ printf "%b\n\n"
 	read -r -n 1 location
 	case "${location}" in
 	1)
-	URL="http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin"
+	URL="http://cachefly.cachefly.net/400mb.test"
+	#URL="http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin"
 	LOC="USA"
 	;;
 	2)
@@ -836,7 +847,7 @@ printf "%b\n" "Auto Selecting Fastest Location....Please wait"
 	declare -a arr=(
 http://ipv4.download.thinkbroadband.com/512MB.zip
 https://speed.hetzner.de/1GB.bin
-http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin
+http://cachefly.cachefly.net/400mb.test
 https://iperf.worldstream.nl/1000mb.bin
 http://ca-mr2-smart.serverlocation.co:82/1Gio.dat
 http://sg-smart.serverlocation.co:82/1Gio.dat
@@ -858,8 +869,8 @@ if
 [ "${BestDL}" = http://ipv4.download.thinkbroadband.com/512MB.zip ]; then
 LOC="United Kingdom"
 elif
-[ "${BestDL}" = http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin ]; then
-LOC=USA
+[ "${BestDL}" = http://cachefly.cachefly.net/400mb.test ]; then
+LOC="USA"
 elif
 [ "${BestDL}" = https://speed.hetzner.de/1GB.bin ]; then
 LOC="Germany"
@@ -935,9 +946,10 @@ Location_Check(){
                 read -r -n 1 -p " Press Any Key To Continue " continue
 			Main_Menu
             fi
-            curl -s https://ipx.ac/json | jq -r '"IP Address : " + .ip,"IP Type: " + .geo.usage, "Network: " + .p0f.network_link, "Domain Name: " + .geo.domainName, "City: " + .geo.cityName, "State: " + .geo.regionName, "Country: " + .geo.countryName, "UTC Offset: " + .timezone, "Lat / Lon: " + "\(.geo.latitude)" + "," + "\(.geo.longitude)", "Provider: " + .geo.isp, "Hostname: " + .ptr, "ASN: " + .asn' | column -s: -t
+            curl -s http://ip-api.com/json/${MYIP} | jq -r . | tr -d '"{},' | column -t -s : | tail -n+2
+            #curl -s https://ipx.ac/json | jq -r '"IP Address : " + .ip,"IP Type: " + .geo.usage, "Network: " + .p0f.network_link, "Domain Name: " + .geo.domainName, "City: " + .geo.cityName, "State: " + .geo.regionName, "Country: " + .geo.countryName, "UTC Offset: " + .timezone, "Lat / Lon: " + "\(.geo.latitude)" + "," + "\(.geo.longitude)", "Provider: " + .geo.isp, "Hostname: " + .ptr, "ASN: " + .asn' | column -s: -t
 			#curl -s https://ipapi.co/${MYIP}/json/ | jq -r '"IP : " + .ip, "City: " + .city, "State: " + .region, "Country: " + .country_name, "TimeZone: " + .timezone, "UTC Offset: " + .utc_offset, "Location: " + "\(.latitude)" + "," + "\(.longitude)", "Provider: " + .org' | column -s: -t
-			# https://ipapi.co/${MYIP}/json/
+			# curl https://ipapi.co/${MYIP}/json/
 			# curl -s "http://ipinfo.io/" | awk -F\" '{print $2":",$4}' | sed 's/[",]//g' | sed '1d;$d' | sed -e "s/\b\(.\)/\u\1/g" | column -s: -t
 			# curl -s http://ip-api.com/#"${MYIP}" | sed 's/[",{}]//g'
 			# MYIP=$(curl -s "http://ipinfo.io/" | awk -F\" '{print $4}' | head -n2 | tail -n1)
