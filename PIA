@@ -1,7 +1,6 @@
 #!/bin/bash
 #
 # World Wide Servers by ip
-# wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
 #
 # Some Speed Test File Locations
 # http://support.smartdnsproxy.com/customer/portal/articles/1907772-vpn-server-locations-addresses
@@ -16,6 +15,7 @@
 #http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin
 # U.S Servers by ip
 # wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep us- | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
+# wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privacy\.network<' | tr -d '[<>]' | grep us- | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
 #
 # tput is used to move the cursor and change colors
 # This script is only verified with Ubuntu and distros based on Ubuntu
@@ -1008,9 +1008,7 @@ kill -9 $SPIN_PID 2> /dev/null
 
 sed -i 's/255.255.255.255//g' DNS.txt
 sort < DNS.txt | uniq > uniDNS.txt && mv uniDNS.txt DNS.txt
-printf "%b" "Upstream-DNS-Address	Provider" "\n" >> DNS2.txt
-printf "%b" "=====================	====================" "\n\n" >> DNS2.txt
-while read IP; do
+printf "%b" "Upstream-DNS-Address	Provider" "\n" >> DNS2.txt printf "%b" "=====================	====================" "\n\n" >> DNS2.txt while read IP; do
 printf "${IP} " >> DNS2.txt; printf "%b" $(whois "${IP}" | awk '/NetName/ {print $2;exit}') "\n" >> DNS2.txt
 done < DNS.txt
 tput cup 16 0
