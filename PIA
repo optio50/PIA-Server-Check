@@ -775,7 +775,7 @@ printf "%b\n\n"
 	read -r -n 1 location
 	case "${location}" in
 	1)
-	URL="http://cachefly.cachefly.net/400mb.test"
+	URL="http://cachefly.cachefly.net/200mb.test"
 	#URL="http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin"
 	LOC="USA"
 	;;
