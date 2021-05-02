@@ -28,8 +28,9 @@ declare -a ARRAY
 			if [[ $Package == 'dnsutils' ]] ; then
 				if command -v dig > /dev/null 2>&1; then continue; fi
 			fi
-    		printf "${XMARK} Missing  $Package, Install? [Y/n] "
-        	read -n 1  response
+    		printf "${XMARK} Missing  $Package, Install? [Y/n]"
+			read -n 1  response
+        	printf "\n"
 			case "${response}" in
        		[nN])
 				printf "\nCan't continue.  Exiting\n"
@@ -124,7 +125,6 @@ https://github.com/optio50/PIA-Server-Check
    / _ \    / __|  / __|  / _ \ / __| / __|    / __|  / _ \  | '_ ` _ \
   / ___ \  | (__  | (__  |  __/ \__ \ \__ \   | (__  | (_) | | | | | | |
  /_/   \_\  \___|  \___|  \___| |___/ |___/ ✴  \___|  \___/  |_| |_| |_|
-
 
 EOF
     tput sgr0 # Reset Terminal Colors
