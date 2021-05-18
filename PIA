@@ -1,165 +1,19 @@
 #!/bin/bash
-#
-# World Wide Servers by ip
-# wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
-#
-# Some Speed Test File Locations
-# http://support.smartdnsproxy.com/customer/portal/articles/1907772-vpn-server-locations-addresses
-# http://speedtest.sea01.softlayer.com/downloads/test100.zip
-# http://proof.ovh.ca/files/100Mio.dat
-# http://793343545.r.cdn77.net/design/swf/testfile100.bin
-# http://speedtest.atlanta.linode.com/100MB-atlanta.bin
-# http://speedtest.dallas.linode.com/100MB-dallas.bin
-# http://speedtest.wdc01.softlayer.com/downloads/test100.zip
-# http://mirror.us.leaseweb.net/speedtest/100mb.bin
-# http://speedtest.sjc01.softlayer.com/downloads/test100.zip
-#http://mirror.sfo12.us.leaseweb.net/speedtest/1000mb.bin
-# U.S Servers by ip
-# wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep us- | while read host ;do host $host ;done | awk '{print $NF}' | sort -u | xargs sudo netselect -v -s 20
-#
-# tput is used to move the cursor and change colors
-# This script is only verified with Ubuntu and distros based on Ubuntu
-# sudo and apt are used to offer user to install an unmet dependancy that is package installable
-# Outside of package manager Dependency requires manual install
-# 
-# Get IP Source
-# curl -s 'https://api.ipify.org'
-#
-#
-#  json output for geolocation
-# curl -s https://ipapi.co/${MYIP}/json/ | jq -r '"IP : " + .ip, "City: " + .city, "State: " + .region, "Country: " + .country_name, "Location: " + "\(.latitude)\(.longitude)"' | column -s: -t
-#
-#  curl_or_wget=$(if hash curl 2>/dev/null; then echo curl; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi)
-# if [ -z "$curl_or_wget" ]; then
-#    echo "Neither curl nor wget found. Cannot use http method." >&2
-#    exit 1
-#fi
-#----------------------------------------------------------------------------------------------------
 
+# Checks if running with sudo permissions
+# If no, prompts user to enter sudo or exit
 trap ctrl_c SIGHUP SIGINT SIGTERM
 if [[ $EUID -ne 0 ]]; then
-	printf "%b\n" "This script requires root privileges for Netselect (Fastest Server Check),
-	installing required tools with apt and MAC Address Changing"
-	printf "%b\n"
-	printf "%b\n" "Example sudo "$0" "
-	exit 1
-fi
-
-CHECKMARK="$(tput sgr0)[$(tput setaf 2)✔$(tput sgr0)]"
-XMARK="$(tput sgr0)[$(tput setaf 1)X$(tput sgr0)]"
-
-if command -v resize >/dev/null 2>&1 ; then
-    resize -s 50 90
-	clear
-	tput cup 0 0
-else
-    printf '\e[8;50;105t'
-    clear
-    tput rc
-fi
-
-tput sgr0 # Reset Terminal Colors
-if command -v netselect >/dev/null 2>&1 ; then
-    printf "%b\n"
-
-else
-
-if command -v resize >/dev/null 2>&1 ; then
-    resize -s 50 105
-	clear
-	tput cup 0 0
-else
-    printf '\e[8;50;105t'
-    clear
-    tput rc
-fi
-    clear
-    printf "%b\n\n"
-    tput setaf 1 # Red Text
-    printf "%b\n" "Netselect is required but not found. You can download it from"
-    tput sgr0 # Reset Terminal Colors
-
-    tput setaf 3 # Magenta Text
-    cat <<"EOF"
-
-http://ftp.us.debian.org/debian/pool/main/n/netselect/
-http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_i386.deb		i386
-http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_arm64.deb		ARM64
-http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_armhf.deb		ARMHF
-http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_amd64.deb		AMD64
-
-EOF
-
-    if command -v wget >/dev/null 2>&1 ; then
-        Downloader="wget"
-elif
-    command -v curl >/dev/null 2>&1 ; then
-        Downloader="curl"
-    fi
-
-    tput sgr0 # Reset Terminal Colors
-    printf "%b\n" "Your Architecture (i386, x86_64, etc.) Is"
-    tput setaf 2 # Green Text
-    arch=$(dpkg --print-architecture);printf "%b\n\t"; tput blink; printf "%b\n" "${arch}"
-    tput sgr0 # Reset Terminal Colors
-    printf "%b\n"
-    tput sgr0 # Reset Terminal Colors
-    tput setaf 2 # Green Text
-    if [ "${arch}" = "arm64" ]; then
-        printf "%b\n\n" "Suggested Download is"
-        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_arm64.deb"
-        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_arm64.deb"
-    elif [ "${arch}" = "amd64" ]; then
-        printf "%b\n\n" "Suggested Download is"
-        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_amd64.deb"
-        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_amd64.deb"
-    elif [ "${arch}" = "i386" ]; then
-        printf "%b\n\n" "Suggested Download is"
-        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_i386.deb"
-        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_i386.deb"
-    elif [ "${arch}" = "armhf" ]; then
-        printf "%b\n\n" "Suggested Download is"
-        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_armhf.deb"
-        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_armhf.deb"
-    else
-        printf "%b\n"
-    fi
-    tput setaf 3 # Yellow Text
-    printf "%b\n"
-
-    if [ -z "${targetDL}" ]
-    then
-        printf "%b\n" "Unknown"
-        printf "%b\n" "Cant Determine Your Architecture, Manual Download and Install "
-        printf "%b\n"
-        tput sgr0 # Reset Terminal Colors
-        printf "%b\n" "After Download install with"
-        tput setaf 6 # Cyan Text
-cat <<"EOF"
-
- dpkg -i netselect_0.3.ds1-28+b1_*.deb
-
-EOF
-        exit
-    else
-        read -r -n 1 -p "Would you like to attempt download and install now? [y/n] " response
-        tput sgr0 # Reset Terminal Colors
-        case "${response}" in
-            [yY])
-                if [ "${Downloader}" = curl ]; then
-                    $(curl -O "${targetDL}")
-                else
-                    "${Downloader}" "${targetDL}"
-                fi
-                 dpkg -i "$(basename "${targetDL}")"
-                exec $(readlink -f "$0")
-                ;;
-            *)
-
-                exit
-                ;;
-        esac
-    fi
+	printf "Script needs to be ran as root, restart with sudo? [y/n] "
+	read -n 1 elev
+	if [[ "yYes" == *"$elev"* ]]; then
+ 		echo 
+		[ "$UID" -eq 0 ] || exec sudo bash "$0" "$@"
+	else
+		printf "\nExiting\n"
+		exit
+	
+	fi
 fi
 
 #----------------------------------------------------
@@ -168,56 +22,28 @@ CheckScriptDependencies ()
 {
 
 declare -a ARRAY
-ARRAY=()
-
-	Packages=( "$@" )
-	Package=
-	printf "%b\n"
-	for Package in ${Packages[@]}; do
-		hash $Package 2> /dev/null
-		if (( $? > 0 )); then
-			
-			printf "%b" "${XMARK}  ${Package}  Not Found But Required" "\n"
-			ARRAY=(${ARRAY[@]} ${Package})
-		fi
-				
-	done
-	
-				
-	#ToInstall=$(printf "%s " ${ARRAY[@]})
-	if [[ -z "${ARRAY[@]}" ]]; then
-			Connection_Check
-			
-	fi
-
-if dig -V >/dev/null 2>&1 ; then
-		printf " "
-		else
-		ARRAY=( ${ARRAY[@]/dig} )
-		ARRAY=(${ARRAY[@]} dnsutils ncurses-bin)
-		#ToInstall=$(printf "%s " ${ARRAY[@]})	
-	printf "%b\n"
-	printf "%b\n" "Missing Dependencies" "\n"
-	#printf "%b\n" ${ARRAY[@]}
-	    printf "%b\n" "Would you like to try to install them now?"
-    printf "%b\n"
-
-    read -r -n 1 -p "[Y/n] " response
-    case "${response}" in
-    
-        [nN])
-			printf "\n"
-            exit
-            ;;
-        *)
-
-             apt install ${ARRAY[@]} && exec $(readlink -f "$0")
-            ;;
-    esac
-
-			
+	for Package in "${Dependencies[@]}" 
+	 do		
+		if ! command -v "$Package" > /dev/null 2>&1; then
+			if [[ $Package == 'dnsutils' ]] ; then
+				if command -v dig > /dev/null 2>&1; then continue; fi
 			fi
-	
+    		printf "${XMARK} Missing  $Package, Install? [Y/n]"
+			read -n 1  response
+        	printf "\n"
+			case "${response}" in
+       		[nN])
+				printf "\nCan't continue.  Exiting\n"
+           		exit
+          	;;
+       		*)
+        		apt-get install "$Package" -y
+           	;;
+    	esac    		
+		fi	
+	done
+Connection_Check
+			
 }
 
 #ProgressBar
@@ -299,7 +125,6 @@ https://github.com/optio50/PIA-Server-Check
    / _ \    / __|  / __|  / _ \ / __| / __|    / __|  / _ \  | '_ ` _ \
   / ___ \  | (__  | (__  |  __/ \__ \ \__ \   | (__  | (_) | | | | | | |
  /_/   \_\  \___|  \___|  \___| |___/ |___/ ✴  \___|  \___/  |_| |_| |_|
-
 
 EOF
     tput sgr0 # Reset Terminal Colors
@@ -401,7 +226,7 @@ Server_Check() {
     if [ "${selection}" -eq 0 ]; then # Zero from PIA_Menu. All servers PIA has
         tput setaf 3 # Yellow Text
         printf "%b" "Checking All Servers Takes More Time....Be Patient" "\n" # warning that this worldwide server check takes longer
-        server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | uniq) # Gets ALL servers
+        server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privacy\.network<' | tr -d '[<>]' | uniq) # Gets ALL servers
         serverCount=$(printf "%b\n" "${server}" | wc -l) # Counts the servers being selected
         countries=$(printf "%b\n" "${server}" | cut -c 1-2 | uniq | wc -l) # Counts the countries PIA has servers in
         tput setaf 2 # Green Text
@@ -410,7 +235,7 @@ Server_Check() {
     else
         # Checks Selected PIA Servers
         #------------------------------------------------------------------------------------------------------
-        server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep "${LOCATION}") # Only check selected country
+        server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privacy\.network<' | tr -d '[<>]' | grep "${LOCATION}") # Only check selected country
         serverCount=$(printf "%b\n" "${server}" | wc -l) # Count the servers in selected country
         tput setaf 3 # Green Text
         printf "%b\n" "Checking "${serverCount}" Locations in Selected Country" # Print the number of server locations in selected country
@@ -673,7 +498,7 @@ tput ed
 if [ "${selection}" -eq 0 ]; then # Zero from PIA_Menu. All servers PIA has
 tput sc
 tput setaf 3 # Yellow Text
-server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | uniq) # Gets ALL servers
+server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privacy\.network<' | tr -d '[<>]' | uniq) # Gets ALL servers
 serverCount=$(printf "%b\n" "${server}" | wc -l) # Counts the servers being selected
 countries=$(printf "%b\n" "${server}" | cut -c 1-2 | uniq | wc -l) # Counts the countries PIA has servers in
 tput setaf 2 # Green Text
@@ -682,7 +507,7 @@ tput sgr0 # Reset Terminal Colors
 else
 # Checks Selected PIA Servers
 #------------------------------------------------------------------------------------------------------
-server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep "${LOCATION}") # Only check selected country
+server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privacy\.network<' | tr -d '[<>]' | grep "${LOCATION}") # Only check selected country
 serverCount=$(printf "%b\n" "${server}" | wc -l) # Count the servers in selected country
 tput setaf 3 # Green Text
 printf "%b\n" "Listing "${serverCount}" Locations in Selected Country" # Print the number of server locations in selected country
@@ -1601,8 +1426,9 @@ ctrl_c() {
 	tput ed
 	exit
 }
-Dependencies=('bc' 'wget' 'dig' 'curl' 'whois' 'jq' 'ethtool' )
+
+CHECKMARK="$(tput sgr0)[$(tput setaf 2)✔$(tput sgr0)]"
+XMARK="$(tput sgr0)[$(tput setaf 1)X$(tput sgr0)]"
+Dependencies=('dnsutils' 'bc' 'wget' 'curl' 'whois' 'jq' 'ethtool' 'netselect')
 CheckScriptDependencies ${Dependencies[@]}
-trap ctrl_c SIGHUP SIGINT SIGTERM
-#trap ctrl_c SIGTERM
-#CheckScriptDependencies
+itrap ctrl_c SIGHUP SIGINT SIGTERM
