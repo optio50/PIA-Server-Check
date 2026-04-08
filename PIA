@@ -1186,7 +1186,7 @@ printf "%b\n" "Taking Down "$IFACE""
 sleep 1
 #ifconfig "$IFACE" down
 ip link set dev "$IFACE" down
-service network-manager stop
+systemctl stop NetworkManager
 
 tput setaf 3
 
@@ -1203,7 +1203,7 @@ tput setaf 1
 printf "%b\n" "Max Retries Error... Aborting"
 tput setaf 9
 ip link set dev "$IFACE" up
-service network-manager start
+systemctl start NetworkManager
 sleep 3
 Main_Menu
 
@@ -1214,7 +1214,7 @@ tput sc
 tput setaf 9
 #ifconfig "$IFACE" up
 ip link set dev "$IFACE" up
-service network-manager start
+systemctl start NetworkManager
 printf "%b\n" "Bringing Up "$IFACE""
 tput setaf 1
 printf "%b\n" "Waiting For "$IFACE" To Become Active"
@@ -1339,14 +1339,14 @@ sleep 2
 tput cup 17 0 # Move cursor to line 16 column 0
 tput ed # Clear all text below cursor
 ip link set dev "$IFACE"  down
-service network-manager stop
+systemctl stop NetworkManager
 
 if (( COUNT >= 3 )); then
 COUNT=0
 tput setaf 1
 printf "%b\n" "Max Retries Error... Aborting"
 ip link set dev "$IFACE" up
-service network-manager restart
+systemctl restart NetworkManager
 tput setaf 9
 sleep 3
 Main_Menu
@@ -1361,7 +1361,7 @@ fi
 tput setaf 9
 #ifconfig "$IFACE" up
 ip link set dev "$IFACE" up
-service network-manager start
+systemctl start NetworkManager
 tput cup 16 0 # Move cursor to line 16 column 0
 tput ed # Clear all text below cursor
 printf "%b\n\n" "Bringing Up "$IFACE""
@@ -1473,7 +1473,7 @@ printf "%b\n" "Taking Down "$IFACE""
 sleep 1
 #ifconfig "$IFACE" down
 ip link set dev "$IFACE" down
-service network-manager stop
+systemctl stop NetworkManager
 
 tput setaf 3
 
@@ -1490,7 +1490,7 @@ tput setaf 1
 printf "%b\n" "Max Retries Error... Aborting"
 tput setaf 9
 ip link set dev "$IFACE" up
-service network-manager start &
+systemctl start NetworkManager &
 sleep 3
 Main_Menu
 
@@ -1501,7 +1501,7 @@ tput sc
 tput setaf 9
 #ifconfig "$IFACE" up
 ip link set dev "$IFACE" up
-service network-manager start
+systemctl start NetworkManager
 printf "%b\n" "Bringing Up "$IFACE""
 tput setaf 1
 printf "%b\n" "Waiting For "$IFACE" To Become Active"
@@ -1614,7 +1614,7 @@ read -r -n 1  selection
 #----------------------------------------------------------------------
 ctrl_c() {
 	printf "%b\n\n" "CTRL-C Detected...Waiting for Clean-Up Before Exiting"
-	service network-manager start &
+	systemctl start NetworkManager &
 	disown $SPIN_PID 2> /dev/null
 	kill -9 $SPIN_PID 2> /dev/null
 	rm file1 file2 file3 file4 file5 uniDNS.txt DNS2.txt DNS.txt 2> /dev/null
