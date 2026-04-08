@@ -47,6 +47,22 @@ fi
 
 CHECKMARK="$(tput sgr0)[$(tput setaf 2)✔$(tput sgr0)]"
 XMARK="$(tput sgr0)[$(tput setaf 1)X$(tput sgr0)]"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" # Directory where the script and ovpn files live
+
+# If no ovpn files exist in script dir, download and extract them from PIA
+if ! ls "${SCRIPT_DIR}"/*.ovpn &>/dev/null; then
+    printf "%b\n" "No .ovpn files found in ${SCRIPT_DIR}"
+    printf "%b\n" "Downloading PIA OpenVPN config files..."
+    if curl -fL --connect-timeout 15 -o "${SCRIPT_DIR}/openvpn.zip" \
+        "https://www.privateinternetaccess.com/openvpn/openvpn.zip"; then
+        unzip -q -o "${SCRIPT_DIR}/openvpn.zip" "*.ovpn" -d "${SCRIPT_DIR}" && \
+        rm -f "${SCRIPT_DIR}/openvpn.zip" && \
+        printf "%b\n" "ovpn files extracted successfully." || \
+        printf "%b\n" "Extraction failed. Please manually place .ovpn files in ${SCRIPT_DIR}"
+    else
+        printf "%b\n" "Download failed. Please manually place .ovpn files in ${SCRIPT_DIR}"
+    fi
+fi
 
 if command -v resize >/dev/null 2>&1 ; then
     resize -s 50 90
@@ -83,10 +99,10 @@ fi
     cat <<"EOF"
 
 http://ftp.us.debian.org/debian/pool/main/n/netselect/
-http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_i386.deb		i386
-http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_arm64.deb		ARM64
-http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_armhf.deb		ARMHF
-http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_amd64.deb		AMD64
+http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-31_i386.deb		i386
+http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-31_arm64.deb		ARM64
+http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-31_armhf.deb		ARMHF
+http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-31_amd64.deb		AMD64
 
 EOF
 
@@ -107,20 +123,20 @@ elif
     tput setaf 2 # Green Text
     if [ "${arch}" = "arm64" ]; then
         printf "%b\n\n" "Suggested Download is"
-        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_arm64.deb"
-        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_arm64.deb"
+        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-31_arm64.deb"
+        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-31_arm64.deb"
     elif [ "${arch}" = "amd64" ]; then
         printf "%b\n\n" "Suggested Download is"
-        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_amd64.deb"
-        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_amd64.deb"
+        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-31_amd64.deb"
+        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-31_amd64.deb"
     elif [ "${arch}" = "i386" ]; then
         printf "%b\n\n" "Suggested Download is"
-        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_i386.deb"
-        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_i386.deb"
+        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-31_i386.deb"
+        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-31_i386.deb"
     elif [ "${arch}" = "armhf" ]; then
         printf "%b\n\n" "Suggested Download is"
-        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_armhf.deb"
-        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-28+b1_armhf.deb"
+        printf "%b\n" "http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-31_armhf.deb"
+        targetDL="http://ftp.us.debian.org/debian/pool/main/n/netselect/netselect_0.3.ds1-31_armhf.deb"
     else
         printf "%b\n"
     fi
@@ -137,7 +153,7 @@ elif
         tput setaf 6 # Cyan Text
 cat <<"EOF"
 
- dpkg -i netselect_0.3.ds1-28+b1_*.deb
+ dpkg -i netselect_0.3.ds1-31_*.deb
 
 EOF
         exit
@@ -401,16 +417,16 @@ Server_Check() {
     if [ "${selection}" -eq 0 ]; then # Zero from PIA_Menu. All servers PIA has
         tput setaf 3 # Yellow Text
         printf "%b" "Checking All Servers Takes More Time....Be Patient" "\n" # warning that this worldwide server check takes longer
-        server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | uniq) # Gets ALL servers
+        server=$(grep -h "^remote " "${SCRIPT_DIR}"/*.ovpn | awk '{print $2}' | sort -u) # Gets ALL servers from local ovpn files
         serverCount=$(printf "%b\n" "${server}" | wc -l) # Counts the servers being selected
-        countries=$(printf "%b\n" "${server}" | cut -c 1-2 | uniq | wc -l) # Counts the countries PIA has servers in
+        countries=$(printf "%b\n" "${server}" | grep -oP '^[a-z]{2}(?=[-_.])' | sort -u | wc -l) # Counts the countries PIA has servers in
         tput setaf 2 # Green Text
         printf "%b\n" "Checking "${serverCount}" Locations From "${countries}" Countries" # Prints the amount of worldwide servers and countries
         tput sgr0 # Reset Terminal Colors
     else
         # Checks Selected PIA Servers
         #------------------------------------------------------------------------------------------------------
-        server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep "${LOCATION}") # Only check selected country
+        server=$(grep -h "^remote " "${SCRIPT_DIR}"/*.ovpn | awk '{print $2}' | sort -u | grep "${LOCATION}") # Only check selected country from local ovpn files
         serverCount=$(printf "%b\n" "${server}" | wc -l) # Count the servers in selected country
         tput setaf 3 # Green Text
         printf "%b\n" "Checking "${serverCount}" Locations in Selected Country" # Print the number of server locations in selected country
@@ -435,26 +451,44 @@ Server_Check() {
     tput sgr0 # Reset Terminal Colors
     tput cup 17 0 # Move cursor to line 15 column 0
     tput ed # Delete text below cursor
-    fhostname=$(awk '{print $2}' file1) # Save fastest hostname
-    printf "%b" "Fastest Hostname ";tput setaf 1; printf "%b" "${fhostname}" "\n"
+    netsel_out=$(awk '{print $2}' file1) # Raw netselect output (may be IP or hostname)
+
+    # netselect sometimes resolves hostnames and returns the IP instead of the name.
+    # Detect that case: forward-resolve each host in the server list to find the matching PIA name.
+    if [[ "${netsel_out}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        FinalIP="${netsel_out}"
+        fhostname=""
+        while IFS= read -r h; do
+            if host "${h}" 2>/dev/null | grep -q "${FinalIP}"; then
+                fhostname="${h}"
+                break
+            fi
+        done <<< "${server}"
+        [ -z "${fhostname}" ] && fhostname="${FinalIP}"
+        IPs="${FinalIP}"
+        cAddresses=1
+    else
+        fhostname="${netsel_out}"
+        host "${fhostname}" > file2 # Pipe fastest hostname into 'host' to find all IPs
+        IPs=$(awk '{print $4}' file2) # Save IP addresses
+        cAddresses=$(wc -l file2 | awk '{print $1}') # Count IP addresses
+        printf "%b" "${fhostname}"; tput setaf 3; printf "%b" " Has ${cAddresses} Servers For That Hostname" "\n\n"
+        tput sgr0 # Reset Terminal Colors
+        printf "%b\n" "${IPs}" # Print IP addresses
+        printf "%b\n"
+        printf "%b" "Checking For The Fastest IP Address To"; tput setaf 2; printf "%b" " ${fhostname} " "\n\n"
+        tput setaf 2 # Green Text
+        printf "%b\n" "${IPs}" | xargs netselect -s 1 > file3 & SPIN_PID=$! # Pipe IPs into Netselect and select fastest
+        PBint=1 # Progressbar Speed
+        spin
+        wait
+        FinalIP=$(awk '{print $2}' file3)
+        disown $SPIN_PID
+        kill -9 $SPIN_PID
+    fi
+
+    printf "%b" "Fastest Hostname "; tput setaf 1; printf "%b\n" "${fhostname}"
     printf "%b\n"
-    host "${fhostname}" > file2 # Pipe fastest hostname into the command 'host' to find all IP's for hostname'
-    IPs=$(awk '{print $4}' file2) # Save IP addresses
-    cAddresses=$(wc -l file2 | awk '{print $1}') # Count IP addresses
-    tput sgr0
-    printf "%b" "${fhostname}";tput setaf 3;printf "%b" " Has "${cAddresses}" Servers For That Hostname" "\n\n" # Print the number of IP addresses
-    tput sgr0 # Reset Terminal Colors
-    printf "%b\n" "${IPs}" # Print IP addresses
-    printf "%b\n"
-    printf "%b" "Checking For The Fastest IP Address To";tput setaf 2; printf "%b" " "${fhostname}" " "\n\n"
-    tput setaf 2 # Green Text
-    printf "%b\n" "${IPs}" | xargs  netselect -s 1 > file3 & SPIN_PID=$! # Pipe the saved IP's in Netselect and select fastest IP
-    PBint=1 # Progressbar Speed
-    spin
-    wait
-    FinalIP=$(awk '{print $2}' file3)
-    disown $SPIN_PID
-    kill -9 $SPIN_PID
     tput cup 18 0 # Move cursor to line 20 column 0
     tput ed # Delete text below cursor
     ping -c 10 "${FinalIP}" > file4 & SPIN_PID=$! # Save the average ping time of the fastest IP
@@ -472,7 +506,6 @@ Server_Check() {
     printf "%b\n\n" "${FinalIP}" "Is The Fastest IP Address and Has an Avg Response Time Of "${resptime}"" # Print fastest IP and average ping time
     tput sgr0
 	printf "%b\n" "==========================================================================="
-	printf "%b" "PIA Speed Test Link "; printf "%b\n" http://"${fhostname}":8888/speedtest/
     rm file1 file2 file3 file4 2> /dev/null # remove the temporary files
     cat <<"EOF"
 
@@ -533,7 +566,7 @@ PIA_Menu() {
     tput ed # Delete text below cursor
     printf "%b\n"
     printf "%b\n" "Checking For VPN Connection"
-    ValuePIA=$(curl -m 10 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected") #Check if already connected PIA
+    ValuePIA=$(curl -s -m 10 https://ipinfo.io/org | grep -ci 'private internet access\|kape technologies\|datacamp') #Check if already connected PIA
 
     if (( "${ValuePIA}" > 0 ))
     then
@@ -555,17 +588,16 @@ fi
 printf "%b\n"
 cat <<"EOF"
 
-Select Country
+Select Region
 
 1. USA
-2. UK
-3. Canada
-4. Australia
-5. New Zealand
-6. Germany
-7. Hong Kong
-8. Japan
-9. Israel
+2. Canada
+3. Americas  (Central/South America & Caribbean)
+4. UK & Ireland
+5. Europe
+6. Africa & Middle East
+7. Asia
+8. Pacific   (Australia & New Zealand)
 0. ALL SERVERS PIA OFFERS
 
 Any Other Key To Main Menu
@@ -579,26 +611,22 @@ case "${selection}" in
 	LOCATION=""
 	;;
 	1)
-	LOCATION="us-";;
+	LOCATION="^us";;
 	2)
-	LOCATION="uk-";;
+	LOCATION="^ca-";;
 	3)
-	LOCATION="ca-";;
+	LOCATION="bahamas\|bogota\|^ar\.\|^bo-\|^br\.\|^ec-\|^gt-\|^mexico\.\|panama\|^pe-\|santiago\|sanjose\|^uy-\|venezuela";;
 	4)
-	LOCATION="au-";;
+	LOCATION="^uk\|ireland\|^man\.";;
 	5)
-	LOCATION="nz.";;
+	LOCATION="^ad\.\|^al\.\|austria\|^ba\.\|brussels\|cyprus\|czech\|^de-\|denmark\|^ee\.\|^es-\|^fi\|france\|georgia\|^gr\.\|greenland\|hungary\|^is\.\|italy\|kazakh\|liecht\|^lt\.\|^lu\.\|^lv\.\|malta\|^md\.\|^mk\.\|monaco\|monteneg\|^nl-\|^no\.\|poland\|^pt\.\|^ro\.\|^rs\.\|^sk\.\|sloven\|sofia\|spain\|sweden\|swiss\|^tr\.\|^ua\.\|yerevan\|zagreb";;
 	6)
-	LOCATION="de-";;
+	LOCATION="^ae\.\|^dz\.\|egypt\|israel\|morocco\|nigeria\|qatar\|saudia\|^za\.";;
 	7)
-	LOCATION="hk.";;
+	LOCATION="banglad\|cambodia\|china\|^hk\.\|^in\.\|jakarta\|japan\|^kr-\|kualalumpur\|macau\|mongolia\|^np-\|philippine\|^sg\.\|srilanka\|taiwan\|vietnam";;
 	8)
-	LOCATION="japan.";;
-	9)
-	LOCATION="israel";;
+	LOCATION="^au-\|^aus-\|^nz\.";;
 	*)
-	#clear
-	#Banner
 	Main_Menu
 	tput cup 16 0
 	tput ed
@@ -614,17 +642,16 @@ tput ed
 printf "%b\n"
 cat <<"EOF"
 
-Select Country
+Select Region
 
 1. USA
-2. UK
-3. Canada
-4. Australia
-5. New Zealand
-6. Germany
-7. Hong Kong
-8. Japan
-9. Israel
+2. Canada
+3. Americas  (Central/South America & Caribbean)
+4. UK & Ireland
+5. Europe
+6. Africa & Middle East
+7. Asia
+8. Pacific   (Australia & New Zealand)
 0. ALL SERVERS PIA OFFERS
 
 Any Other Key To Main Menu
@@ -639,26 +666,22 @@ case "${selection}" in
 	ActBanner=Yes
 	;;
 	1)
-	LOCATION="us-";;
+	LOCATION="^us";;
 	2)
-	LOCATION="uk-";;
+	LOCATION="^ca-";;
 	3)
-	LOCATION="ca-";;
+	LOCATION="bahamas\|bogota\|^ar\.\|^bo-\|^br\.\|^ec-\|^gt-\|^mexico\.\|panama\|^pe-\|santiago\|sanjose\|^uy-\|venezuela";;
 	4)
-	LOCATION="au-";;
+	LOCATION="^uk\|ireland\|^man\.";;
 	5)
-	LOCATION="nz.";;
+	LOCATION="^ad\.\|^al\.\|austria\|^ba\.\|brussels\|cyprus\|czech\|^de-\|denmark\|^ee\.\|^es-\|^fi\|france\|georgia\|^gr\.\|greenland\|hungary\|^is\.\|italy\|kazakh\|liecht\|^lt\.\|^lu\.\|^lv\.\|malta\|^md\.\|^mk\.\|monaco\|monteneg\|^nl-\|^no\.\|poland\|^pt\.\|^ro\.\|^rs\.\|^sk\.\|sloven\|sofia\|spain\|sweden\|swiss\|^tr\.\|^ua\.\|yerevan\|zagreb";;
 	6)
-	LOCATION="de-";;
+	LOCATION="^ae\.\|^dz\.\|egypt\|israel\|morocco\|nigeria\|qatar\|saudia\|^za\.";;
 	7)
-	LOCATION="hk.";;
+	LOCATION="banglad\|cambodia\|china\|^hk\.\|^in\.\|jakarta\|japan\|^kr-\|kualalumpur\|macau\|mongolia\|^np-\|philippine\|^sg\.\|srilanka\|taiwan\|vietnam";;
 	8)
-	LOCATION="japan.";;
-	9)
-	LOCATION="israel";;
+	LOCATION="^au-\|^aus-\|^nz\.";;
 	*)
-	#clear
-	#Banner
 	Main_Menu
 	tput cup 16 0
 	tput ed
@@ -673,16 +696,16 @@ tput ed
 if [ "${selection}" -eq 0 ]; then # Zero from PIA_Menu. All servers PIA has
 tput sc
 tput setaf 3 # Yellow Text
-server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | uniq) # Gets ALL servers
+server=$(grep -h "^remote " "${SCRIPT_DIR}"/*.ovpn | awk '{print $2}' | sort -u) # Gets ALL servers from local ovpn files
 serverCount=$(printf "%b\n" "${server}" | wc -l) # Counts the servers being selected
-countries=$(printf "%b\n" "${server}" | cut -c 1-2 | uniq | wc -l) # Counts the countries PIA has servers in
+countries=$(printf "%b\n" "${server}" | grep -oP '^[a-z]{2}(?=[-_.])' | sort -u | wc -l) # Counts the countries PIA has servers in
 tput setaf 2 # Green Text
 printf "%b\n" "Listing "${serverCount}" Locations From "${countries}" Countries" # Prints the amount of worldwide servers and countries
 tput sgr0 # Reset Terminal Colors
 else
 # Checks Selected PIA Servers
 #------------------------------------------------------------------------------------------------------
-server=$(wget -q  https://www.privateinternetaccess.com/pages/network/ -O - | grep -E -o '>[^.]+\.privateinternetaccess\.com<' | tr -d '[<>]' | grep "${LOCATION}") # Only check selected country
+server=$(grep -h "^remote " "${SCRIPT_DIR}"/*.ovpn | awk '{print $2}' | sort -u | grep "${LOCATION}") # Only check selected country from local ovpn files
 serverCount=$(printf "%b\n" "${server}" | wc -l) # Count the servers in selected country
 tput setaf 3 # Green Text
 printf "%b\n" "Listing "${serverCount}" Locations in Selected Country" # Print the number of server locations in selected country
@@ -707,7 +730,7 @@ fi
 Speed_Test() {
 tput cup 16 0
 tput ed
-PIAconnect=$(curl -m 5 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected")
+PIAconnect=$(curl -s -m 5 https://ipinfo.io/org | grep -ci 'private internet access\|kape technologies\|datacamp')
                 if (( "${PIAconnect}" > 0 )) ; then
                 printf "%b\n" "${CHECKMARK}$(tput setaf 2) This Speed Test is with PIA VPN Active"
                 else
@@ -780,35 +803,35 @@ printf "%b\n\n"
 	LOC="USA"
 	;;
 	2)
-	URL="http://ipv4.download.thinkbroadband.com/512MB.zip"
+	URL="http://speedtest.london.linode.com/100MB-london.bin"
 	LOC="United Kingdom"
 	;;
 	3)
-	URL="https://speed.hetzner.de/1GB.bin"
+	URL="https://nbg1-speed.hetzner.com/100MB.bin"
 	LOC="Germany"
 	;;
 	4)
-	URL="https://iperf.worldstream.nl/1000mb.bin"
+	URL="http://mirror.i3d.net/100mb.bin"
 	LOC="Netherlands"
 	;;
 	5)
-	URL="http://ca-mr2-smart.serverlocation.co:82/1Gio.dat"
+	URL="https://tor-ca-ping.vultr.com/vultr.com.100MB.bin"
 	LOC="Canada"
 	;;
 	6)
-	URL="http://sg-smart.serverlocation.co:82/1Gio.dat"
+	URL="https://sin.download.datapacket.com/100mb.bin"
 	LOC="Singapore"
 	;;
 	7)
-	URL="http://it-ml-smart.serverlocation.co:82/1Gio.dat"
-	LOC="Italy"
+	URL="http://par-fr-ping.vultr.com/vultr.com.100MB.bin"
+	LOC="France"
 	;;
 	8)
-	URL="http://jp-tk-smart.serverlocation.co:82/1Gio.dat"
+	URL="https://speedtest.tokyo2.linode.com/100MB-speedtest.bin"
 	LOC="Japan"
 	;;
 	9)
-	URL="http://au-sy.serverlocation.co:82/1Gio.dat"
+	URL="https://syd.download.datapacket.com/100mb.bin"
 	LOC="Australia"
 	;;
 	0)
@@ -845,15 +868,15 @@ tput cup 17 0
 tput ed
 printf "%b\n" "Auto Selecting Fastest Location....Please wait"
 	declare -a arr=(
-http://ipv4.download.thinkbroadband.com/512MB.zip
-https://speed.hetzner.de/1GB.bin
 http://cachefly.cachefly.net/400mb.test
-https://iperf.worldstream.nl/1000mb.bin
-http://ca-mr2-smart.serverlocation.co:82/1Gio.dat
-http://sg-smart.serverlocation.co:82/1Gio.dat
-http://it-ml-smart.serverlocation.co:82/1Gio.dat
-http://jp-tk-smart.serverlocation.co:82/1Gio.dat
-http://au-sy.serverlocation.co:82/1Gio.dat
+http://speedtest.london.linode.com/100MB-london.bin
+https://nbg1-speed.hetzner.com/100MB.bin
+http://mirror.i3d.net/100mb.bin
+https://tor-ca-ping.vultr.com/vultr.com.100MB.bin
+https://sin.download.datapacket.com/100mb.bin
+http://par-fr-ping.vultr.com/vultr.com.100MB.bin
+https://speedtest.tokyo2.linode.com/100MB-speedtest.bin
+https://syd.download.datapacket.com/100mb.bin
 )
 
 #-----------------------------------------------------------------
@@ -866,31 +889,31 @@ kill -9 $SPIN_PID
 BestDL=$(cat file5)
 rm file5 2> /dev/null
 if
-[ "${BestDL}" = http://ipv4.download.thinkbroadband.com/512MB.zip ]; then
-LOC="United Kingdom"
-elif
 [ "${BestDL}" = http://cachefly.cachefly.net/400mb.test ]; then
 LOC="USA"
 elif
-[ "${BestDL}" = https://speed.hetzner.de/1GB.bin ]; then
+[ "${BestDL}" = http://speedtest.london.linode.com/100MB-london.bin ]; then
+LOC="United Kingdom"
+elif
+[ "${BestDL}" = https://nbg1-speed.hetzner.com/100MB.bin ]; then
 LOC="Germany"
 elif
-[ "${BestDL}" = https://iperf.worldstream.nl/1000mb.bin ]; then
+[ "${BestDL}" = http://mirror.i3d.net/100mb.bin ]; then
 LOC="Netherlands"
 elif
-[ "${BestDL}" = http://ca-mr2-smart.serverlocation.co:82/1Gio.dat ]; then
+[ "${BestDL}" = https://tor-ca-ping.vultr.com/vultr.com.100MB.bin ]; then
 LOC="Canada"
 elif
-[ "${BestDL}" = http://sg-smart.serverlocation.co:82/1Gio.dat ]; then
+[ "${BestDL}" = https://sin.download.datapacket.com/100mb.bin ]; then
 LOC="Singapore"
 elif
-[ "${BestDL}" = http://it-ml-smart.serverlocation.co:82/1Gio.dat ]; then
-LOC="Italy"
+[ "${BestDL}" = http://par-fr-ping.vultr.com/vultr.com.100MB.bin ]; then
+LOC="France"
 elif
-[ "${BestDL}" = http://jp-tk-smart.serverlocation.co:82/1Gio.dat ]; then
+[ "${BestDL}" = https://speedtest.tokyo2.linode.com/100MB-speedtest.bin ]; then
 LOC="Japan"
 elif
-[ "${BestDL}" = http://au-sy.serverlocation.co:82/1Gio.dat ]; then
+[ "${BestDL}" = https://syd.download.datapacket.com/100mb.bin ]; then
 LOC="Australia"
 else
 tput setaf 1 # Red Text
@@ -909,7 +932,7 @@ Location_Check(){
     printf "%b\n"
 	printf "%b\n" "Checking IP & Location Information"
 
-            PIAconnect=$(curl -m 5 -s https://www.privateinternetaccess.com/pages/whats-my-ip/ | grep -c "You are protected")
+            PIAconnect=$(curl -s -m 5 https://ipinfo.io/org | grep -ci 'private internet access\|kape technologies\|datacamp')
 
             if (( "${PIAconnect}" > 0 )) ; then
                 tput setaf 2 # Green Text
@@ -956,11 +979,11 @@ Location_Check(){
 			# LATLON=$(curl -s https://ipapi.co/ | grep 'Latitude / Longitude' | sed 's/.*\-text="//;s/">.*//' | tr -d ' ')
 			# MAP1=$(curl -m 5 -s http://ping.pe/"${MYIP}" | grep -E "https:\/\/www\.google\.com\/maps\/place\/" | sed 's/.*href=\(.*\)>MAP<\/a><\/b><br><br>/\1/' | tr -d \'\")
 			# MAP3='https://www.geolocation.com/?ip='${MYIP}''
-			LATLON=$(curl -s https://ipapi.co/latlong/)
-			LATLON2=$(printf ${LATLON} | sed 's/,/\//g') # Replace the , with a / for use with OpenStreetMaps
-			MAP4='www.google.com/maps/@'${LATLON}',10z'
+			LATLON=$(curl -s https://ipinfo.io/json | jq -r '.loc')
+			LATLON_BING=$(printf ${LATLON} | sed 's/,/~/g') # Replace , with ~ for Bing Maps
+			MAP4='https://www.google.com/maps/@'${LATLON}',10z'
 			MAP5='https://www.whatsmyip.org/ip-geo-location/?ip='${MYIP}
-			MAP6='https://www.openstreetmap.org/#map=12/'${LATLON2}
+			MAP6='https://www.bing.com/maps?cp='${LATLON_BING}'&lvl=12'
 			printf "%b\n"
 			tput sgr0
 			printf "%b" "Location Map   ";tput setaf 2; printf "%b" ${MAP4} "\n"
