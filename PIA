@@ -450,7 +450,8 @@ Server_Check() {
     kill -9 $SPIN_PID
     tput sgr0 # Reset Terminal Colors
     tput cup 17 0 # Move cursor to line 15 column 0
-    tput ed # Delete text below cursor
+    tput clear # Delete text below cursor
+    printf "%b" "Still Checking For PIA's Fastest Server...Please Wait." "\n\n"
     netsel_out=$(awk '{print $2}' file1) # Raw netselect output (may be IP or hostname)
 
     # netselect sometimes resolves hostnames and returns the IP instead of the name.
@@ -458,13 +459,19 @@ Server_Check() {
     if [[ "${netsel_out}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         FinalIP="${netsel_out}"
         fhostname=""
-        while IFS= read -r h; do
-            if host "${h}" 2>/dev/null | grep -q "${FinalIP}"; then
-                fhostname="${h}"
-                break
-            fi
-        done <<< "${server}"
-        [ -z "${fhostname}" ] && fhostname="${FinalIP}"
+        # Try reverse DNS first — single fast lookup
+        rdns=$(host "${FinalIP}" 2>/dev/null | awk '/domain name pointer/{gsub(/\.$/,"",$NF); print $NF}')
+        if printf "%s\n" "${server}" | grep -qx "${rdns}"; then
+            fhostname="${rdns}"
+        else
+            # Fall back to forward-resolve loop with per-host timeout
+            while IFS= read -r h; do
+                if timeout 2 host "${h}" 2>/dev/null | grep -q "${FinalIP}"; then
+                    fhostname="${h}"
+                    break
+                fi
+            done <<< "${server}"
+        fi
         IPs="${FinalIP}"
         cAddresses=1
     else
@@ -472,6 +479,8 @@ Server_Check() {
         host "${fhostname}" > file2 # Pipe fastest hostname into 'host' to find all IPs
         IPs=$(awk '{print $4}' file2) # Save IP addresses
         cAddresses=$(wc -l file2 | awk '{print $1}') # Count IP addresses
+        printf "%b\n" "==========================================================================="
+        printf "%b\n"
         printf "%b" "${fhostname}"; tput setaf 3; printf "%b" " Has ${cAddresses} Servers For That Hostname" "\n\n"
         tput sgr0 # Reset Terminal Colors
         printf "%b\n" "${IPs}" # Print IP addresses
@@ -490,19 +499,21 @@ Server_Check() {
     printf "%b" "Fastest Hostname "; tput setaf 1; printf "%b\n" "${fhostname}"
     printf "%b\n"
     tput cup 18 0 # Move cursor to line 20 column 0
-    tput ed # Delete text below cursor
+    tput clear
+    #tput ed # Delete text below cursor
     ping -c 10 "${FinalIP}" > file4 & SPIN_PID=$! # Save the average ping time of the fastest IP
     printf "%b\n" "Measuring Response Time For The Fastest IP Address"
     PBint=.5 # Progressbar Speed
     spin
     wait
-    disown $SPIN_PID
-    kill -9 $SPIN_PID
+    disown $SPIN_PID 2>/dev/null
+    kill -9 $SPIN_PID 2>/dev/null
     resptime=$(tail -1 file4 | awk -F '/' '{print $5 "ms"}')
-    tput cup 18 0 # Move cursor to line 20 column 0
+    tput cup 5 0 # Move cursor to line 20 column 0
     tput ed # Delete text below cursor
     printf "%b\n" "==========================================================================="
     tput setaf 3 # Yellow Text
+    printf "%b\n" "${fhostname}"
     printf "%b\n\n" "${FinalIP}" "Is The Fastest IP Address and Has an Avg Response Time Of "${resptime}"" # Print fastest IP and average ping time
     tput sgr0
 	printf "%b\n" "==========================================================================="
@@ -565,23 +576,6 @@ PIA_Menu() {
     tput cup 24 0 # Move cursor to line 22 column 0
     tput ed # Delete text below cursor
     printf "%b\n"
-    printf "%b\n" "Checking For VPN Connection"
-    ValuePIA=$(curl -s -m 10 https://ipinfo.io/org | grep -ci 'private internet access\|kape technologies\|datacamp') #Check if already connected PIA
-
-    if (( "${ValuePIA}" > 0 ))
-    then
-        tput cup 17 0 # Move cursor to line 15 column 0
-        tput ed # Delete text below cursor
-        tput setaf 3 # Yellow Text
-        # Warning about slower ping times while being connected to PIA
-        printf "%b" "You are currently connected to PIA's VPN service.
-More realistic results can be achived if you are not connected
-to PIA for the \"Fastest Server Check\""
-tput sgr0 # reset terminal colors
-else
-tput cup 17 0 # Move cursor to line 15 column 0
-tput ed # Delete text below cursor
-fi
 
 
 # Print PIA country select
@@ -730,13 +724,6 @@ fi
 Speed_Test() {
 tput cup 16 0
 tput ed
-PIAconnect=$(curl -s -m 5 https://ipinfo.io/org | grep -ci 'private internet access\|kape technologies\|datacamp')
-                if (( "${PIAconnect}" > 0 )) ; then
-                printf "%b\n" "${CHECKMARK}$(tput setaf 2) This Speed Test is with PIA VPN Active"
-                else
-                printf "%b\n" "${XMARK}$(tput setaf 1) This Speed Test is with PIA VPN Inactive"
-                fi
-                tput sgr0 # Reset Terminal Colors
 cat <<"EOF"
 
 Select Download Size
@@ -932,17 +919,6 @@ Location_Check(){
     printf "%b\n"
 	printf "%b\n" "Checking IP & Location Information"
 
-            PIAconnect=$(curl -s -m 5 https://ipinfo.io/org | grep -ci 'private internet access\|kape technologies\|datacamp')
-
-            if (( "${PIAconnect}" > 0 )) ; then
-                tput setaf 2 # Green Text
-                printf "%b\n" "✔  You are Protected With PIA  ✔"
-            else
-				tput setaf 1 # Red Text
-                printf "%b\n" "❌  You are NOT Protected With PIA  ❌"
-            fi
-            
-            tput sgr0 # Reset Terminal Colors
 
 			MYIP=$(curl -s -4 https://icanhazip.com)
             if [[ "${MYIP}" =~ ^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$ ]]; then
